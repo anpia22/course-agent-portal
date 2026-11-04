@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, Headphones, MessageCircle, Send, UserRound } from 'lucide-react';
+import { Eye, Headphones, MessageCircle, Send, UserRound, ArrowLeft } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, formatApiError } from '../utils/api';
@@ -268,7 +269,7 @@ const StaffChat = () => {
         <ChannelTabs channels={channels} active={channel} onChange={chooseChannel} labelKey="staffLabel" />
       )}
       <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden rounded-xl grid grid-cols-1 md:grid-cols-[280px_1fr]">
-        <div className="border-b md:border-b-0 md:border-r border-gray-100 h-[calc(100dvh-320px)] min-h-[420px] overflow-y-auto">
+        <div className={cn("border-b md:border-b-0 md:border-r border-gray-100 h-[calc(100dvh-320px)] min-h-[420px] overflow-y-auto", selected ? "hidden md:block" : "block")}>
           {canWrite ? (
             <div className="p-3 border-b border-gray-100">
               <select className="h-9 w-full rounded-md border border-gray-200 bg-white px-2 text-sm" value="" onChange={(e) => choose(e.target.value)}>
@@ -312,9 +313,9 @@ const ChatPage = () => {
   const { user } = useAuth();
   const isAgent = user && user.role === 'agent';
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-5 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight flex items-center gap-2">
           <MessageCircle size={22} className="text-[#042C53]" /> Live chat
         </h1>
         <p className="text-sm text-gray-500 mt-1">

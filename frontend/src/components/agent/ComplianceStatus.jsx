@@ -39,6 +39,9 @@ const ComplianceStatus = () => {
   const [declaration, setDeclaration] = useState({ declarationName: '', declarationIdNumber: '' });
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
 
+  // If the account is already active, don't show on the dashboard (credentials are in Settings)
+  if (user?.isActivated || user?.contractStatus === 'active') return null;
+
   if (isVerified) return <AgentActivationStatus />;
 
   const canSubmit = ['draft', 'correction_required'].includes(user?.onboardingStatus);
@@ -141,18 +144,18 @@ const ComplianceStatus = () => {
 
   return (
     <Card className={`border-l-4 ${isVerified ? 'border-l-emerald-500' : 'border-l-amber-500'}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isVerified ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+      <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-3">
+        <div className="flex flex-col-reverse items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className={`p-2 rounded-lg shrink-0 ${isVerified ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
               {isVerified ? (
                 <ShieldCheck className={`w-5 h-5 ${isVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
               ) : (
                 <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               )}
             </div>
-            <div>
-              <CardTitle className="text-lg font-['Outfit']">Agent Compliance Status</CardTitle>
+            <div className="min-w-0">
+              <CardTitle className="text-base sm:text-lg font-['Outfit']">Agent Compliance Status</CardTitle>
               <CardDescription>
                 {isVerified
                   ? 'Your account is fully verified and compliant.'
@@ -162,10 +165,10 @@ const ComplianceStatus = () => {
               </CardDescription>
             </div>
           </div>
-          <Badge className={`border-none ${status.style}`}>{status.label}</Badge>
+          <Badge className={`border-none shrink-0 ${status.style}`}>{status.label}</Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
         <div className="space-y-4">
           {user?.onboardingStatus === 'correction_required' && user?.verificationRemarks && (
             <div className="text-sm bg-orange-50 border border-orange-200 text-orange-900 p-3 rounded-lg">
@@ -181,7 +184,7 @@ const ComplianceStatus = () => {
           {/* Required documents checklist */}
           {checklist.length > 0 ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verification Documents</p>
                 <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                   Any 1 document sufficient
@@ -259,18 +262,18 @@ const ComplianceStatus = () => {
           {documents.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {documents.map((doc, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                <div key={index} className="flex items-center justify-between gap-2 p-3 border rounded-lg bg-muted/30">
                   <div className="flex items-center gap-3 min-w-0">
                     <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{doc.docType}</p>
+                      <p className="text-sm font-medium truncate">{doc.docType}</p>
                       <p className="text-xs text-muted-foreground line-clamp-1">{doc.fileName}</p>
                       {doc.status === 'rejected' && doc.remarks && (
                         <p className="text-xs text-red-600 mt-0.5">Rejected: {doc.remarks}</p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <div className="flex flex-col items-end gap-1">
                       {getStatusBadge(doc.status)}
                       <span className="text-[10px] text-muted-foreground">

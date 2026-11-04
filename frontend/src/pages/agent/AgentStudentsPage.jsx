@@ -289,16 +289,16 @@ const AgentStudentsPage = () => {
   }
 
   return (
-    <div className="p-6 md:p-8 font-sans bg-[#F9FAFB] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 font-sans bg-[#F9FAFB] min-h-screen">
       {/* Header Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">My Students</h1>
-          <p className="text-sm text-[#6B7280] font-medium mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">My Students</h1>
+          <p className="text-xs sm:text-sm text-[#6B7280] font-medium mt-1">
             {myStudents.length} students registered
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <Button
             variant="outline"
             className="h-10 text-xs font-bold border-gray-200"
@@ -318,22 +318,22 @@ const AgentStudentsPage = () => {
       </div>
 
       {/* KPI Pipeline Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+      <div className="stat-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
         <div
-          className={`cursor-pointer p-4 rounded-xl border transition-all ${curStage === 'all' && subStageFilter === 'all' ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+          className={`cursor-pointer p-3 sm:p-4 rounded-xl border transition-all ${curStage === 'all' && subStageFilter === 'all' ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
           onClick={() => { setCurStage('all'); setSubStageFilter('all'); }}
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-gray-400" />
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">All Students</span>
           </div>
-          <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{kpis.all}</div>
+          <div className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit']">{kpis.all}</div>
           <p className="text-[10px] text-gray-400 mt-1 font-medium">My registrations</p>
         </div>
         {STUDENT_FUNNEL.map(group => (
           <div
             key={group.key}
-            className={`cursor-pointer p-4 rounded-xl border transition-all ${curStage === group.key ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+            className={`cursor-pointer p-3 sm:p-4 rounded-xl border transition-all ${curStage === group.key ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
             onClick={() => {
               setCurStage(group.key);
               setSubStageFilter('all');
@@ -344,7 +344,7 @@ const AgentStudentsPage = () => {
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{group.label}</span>
             </div>
-            <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{kpis[group.key] || 0}</div>
+            <div className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit']">{kpis[group.key] || 0}</div>
             <p className="text-xs text-gray-500 mt-1">{group.hint}</p>
           </div>
         ))}
@@ -405,8 +405,8 @@ const AgentStudentsPage = () => {
       </Dialog>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="relative flex-1 min-w-[280px]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 mb-6">
+        <div className="relative flex-1 min-w-0">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
           <input
             type="text"
@@ -416,9 +416,9 @@ const AgentStudentsPage = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
           <select
-            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all"
+            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all flex-1 sm:flex-initial"
             value={universityFilter}
             onChange={(e) => setUniversityFilter(e.target.value)}
           >
@@ -428,7 +428,7 @@ const AgentStudentsPage = () => {
             ))}
           </select>
           <select
-            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all"
+            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all flex-1 sm:flex-initial"
             value={verificationFilter}
             onChange={(e) => setVerificationFilter(e.target.value)}
           >
@@ -439,7 +439,7 @@ const AgentStudentsPage = () => {
             <option value="Rejected">Rejected</option>
           </select>
           <select
-            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all"
+            className="text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-200 bg-white outline-none focus:border-[#042C53] transition-all flex-1 sm:flex-initial"
             value={docFilter}
             onChange={(e) => setDocFilter(e.target.value)}
           >
@@ -448,7 +448,7 @@ const AgentStudentsPage = () => {
             <option value="missing">Missing</option>
             <option value="pending">Pending</option>
           </select>
-          <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
+          <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1 shrink-0">
             <Button
               variant="ghost"
               size="icon"
@@ -479,7 +479,7 @@ const AgentStudentsPage = () => {
       {displayMode === 'table' ? (
         <Card className="border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm text-left">
+            <table className="w-full border-collapse text-sm text-left min-w-[760px]">
               <thead>
                 <tr className="bg-[#F9FAFB] border-b border-gray-100">
                   <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
@@ -647,30 +647,30 @@ const AgentStudentsPage = () => {
             onClick={e => e.stopPropagation()}
           >
             {/* Panel Header */}
-            <div className="p-6 md:p-8 border-b border-gray-100 bg-white sticky top-0 z-10">
+            <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-100 bg-white sticky top-0 z-10">
               <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xl font-bold shadow-sm">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-lg sm:text-xl font-bold shadow-sm shrink-0">
                     {getInitials(getStudentName(selectedStudent))}
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-[#111827] font-['Outfit']">{getStudentName(selectedStudent)}</h3>
-                    <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500 font-medium">
+                  <div className="min-w-0">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit'] truncate">{getStudentName(selectedStudent)}</h3>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs sm:text-sm text-gray-500 font-medium">
                       <span className="flex items-center gap-1.5"><Mail size={14} /> {getStudentValue(selectedStudent, 'email', 'Email Address')}</span>
                       <span className="text-gray-300">•</span>
                       <span className="flex items-center gap-1.5"><Phone size={14} /> {getStudentValue(selectedStudent, 'phone', 'Phone Number')}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={`px-3 py-1 font-bold uppercase tracking-wider ${getStudentStageInfo(selectedStudent).style}`}>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge className={`px-2.5 sm:px-3 py-1 font-bold uppercase tracking-wider text-[10px] sm:text-xs ${getStudentStageInfo(selectedStudent).style}`}>
                     {getStudentStageInfo(selectedStudent).label}
                   </Badge>
                   <button
-                    className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                     onClick={() => setSelectedStudentId(null)}
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 </div>
               </div>
@@ -765,34 +765,36 @@ const AgentStudentsPage = () => {
 
               {/* Journey Tracker */}
               <div>
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6">Student Journey Progress</h4>
-                <div className="flex items-start z-10">
-                  {STUDENT_JOURNEY.map((stage, idx) => {
-                    const currentIdx = getStudentJourneyIndex(selectedStudent);
-                    const isLast = idx === STUDENT_JOURNEY.length - 1;
-                    // The final stage has nothing after it, so reaching it counts as complete
-                    const isDone = idx < currentIdx || (isLast && idx === currentIdx);
-                    const isActive = idx === currentIdx && !isLast;
-                    return (
-                      <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
-                        {idx > 0 && (
-                          <div className={`absolute top-[18px] -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-100'}`} />
-                        )}
-                        <div className={`relative z-1 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' :
-                          isActive ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/50 shadow-sm' :
-                            'bg-white border-gray-100 text-gray-300'
-                          }`}>
-                          {isDone ? <CheckCircle2 size={16} /> : idx + 1}
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 sm:mb-6">Student Journey Progress</h4>
+                <div className="overflow-x-auto scrollbar-hide py-1">
+                  <div className="flex items-start z-10 min-w-[380px]">
+                    {STUDENT_JOURNEY.map((stage, idx) => {
+                      const currentIdx = getStudentJourneyIndex(selectedStudent);
+                      const isLast = idx === STUDENT_JOURNEY.length - 1;
+                      // The final stage has nothing after it, so reaching it counts as complete
+                      const isDone = idx < currentIdx || (isLast && idx === currentIdx);
+                      const isActive = idx === currentIdx && !isLast;
+                      return (
+                        <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
+                          {idx > 0 && (
+                            <div className={`absolute top-[18px] -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-100'}`} />
+                          )}
+                          <div className={`relative z-1 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' :
+                            isActive ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/50 shadow-sm' :
+                              'bg-white border-gray-100 text-gray-300'
+                            }`}>
+                            {isDone ? <CheckCircle2 size={16} /> : idx + 1}
+                          </div>
+                          <span className={`text-[10px] leading-tight mt-3 px-0.5 font-bold text-center break-words ${isDone ? 'text-[#27500A]' :
+                            isActive ? 'text-[#0C447C]' :
+                              'text-gray-300'
+                            }`}>
+                            {getStageLabel(stage)}
+                          </span>
                         </div>
-                        <span className={`text-[10px] leading-tight mt-3 px-0.5 font-bold text-center break-words ${isDone ? 'text-[#27500A]' :
-                          isActive ? 'text-[#0C447C]' :
-                            'text-gray-300'
-                          }`}>
-                          {getStageLabel(stage)}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

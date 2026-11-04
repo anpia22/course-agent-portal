@@ -39,21 +39,22 @@ const Topbar = ({ sidebarCollapsed, onMobileMenuClick }) => {
   return (
     <header
       data-testid="topbar"
-      className="sticky top-0 z-40 flex h-20 w-full items-center border-b border-slate-800 bg-slate-900/95 backdrop-blur-xl"
+      className="sticky top-0 z-40 flex h-14 sm:h-16 lg:h-20 w-full items-center border-b border-slate-800 bg-slate-900/95 backdrop-blur-xl"
     >
-      <div className="w-full flex items-center justify-between px-4 md:px-6">
+      <div className="w-full flex items-center justify-between gap-2 px-3 sm:px-4 md:px-6">
         {/* Mobile Menu Button */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <div className="text-sm font-medium text-slate-200 font-['Outfit']">
-            {user?.role === 'admin' ? 'Admin' : 'Agent'}
-          </div>
+        <div className="flex items-center gap-1.5 lg:hidden min-w-0">
           <button
             onClick={onMobileMenuClick}
             data-testid="mobile-menu-btn"
-            className="p-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100"
+            aria-label="Open menu"
+            className="p-2 -ml-1 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-100"
           >
             <Menu className="w-5 h-5" />
           </button>
+          <div className="text-sm font-medium text-slate-200 font-['Outfit'] truncate">
+            {user?.role === 'admin' ? 'Admin' : 'Agent'}
+          </div>
         </div>
 
         {/* Page Title / Breadcrumb Area - Desktop Only */}
@@ -64,12 +65,12 @@ const Topbar = ({ sidebarCollapsed, onMobileMenuClick }) => {
         </div>
 
         {/* Search */}
-        <div className="hidden md:block w-72 lg:w-96 mx-4">
+        <div className="hidden md:block flex-1 max-w-md lg:max-w-none lg:flex-none lg:w-96 mx-4">
           <GlobalSearch />
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
 
           {/* Notifications */}
           <NotificationCenter />

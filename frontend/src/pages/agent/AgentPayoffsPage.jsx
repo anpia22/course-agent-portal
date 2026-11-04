@@ -137,8 +137,8 @@ const AgentPayoffsPage = () => {
   ];
 
   const PayoffTable = ({ list }) => (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden shadow-sm">
-      <Table>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
+      <Table className="min-w-[650px]">
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Payment & Invoice</TableHead>
@@ -225,7 +225,7 @@ const AgentPayoffsPage = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -267,7 +267,7 @@ const AgentPayoffsPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2" role="tablist">
+        <div className="scroll-row sm:flex-wrap gap-1.5 sm:gap-2" role="tablist">
           {FILTERS.map((f) => {
             const selected = filter === f.key;
             return (
@@ -294,7 +294,7 @@ const AgentPayoffsPage = () => {
         <DialogContent className="max-w-3xl p-0 overflow-hidden bg-white rounded-2xl border-none shadow-2xl">
           {selectedPayoff && (
             <div className="relative min-h-[500px] flex flex-col">
-              <div className="bg-[#042C53] p-8 text-white flex justify-between items-start">
+              <div className="bg-[#042C53] p-5 sm:p-8 text-white flex justify-between items-start">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-6 h-6 text-blue-200" />
@@ -315,7 +315,7 @@ const AgentPayoffsPage = () => {
                 </div>
               </div>
 
-              <div className="p-8 space-y-6 flex-1 max-h-[70vh] overflow-y-auto">
+              <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 flex-1 max-h-[70vh] overflow-y-auto">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
                   <div>
                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Disbursement Status</span>

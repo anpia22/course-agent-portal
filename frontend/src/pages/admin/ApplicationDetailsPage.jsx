@@ -297,7 +297,7 @@ const ApplicationDetailsPage = () => {
   const isTerminal = ['Rejected', 'Withdrawn'].includes(application.status);
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="application-details-page">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-5 sm:space-y-6" data-testid="application-details-page">
       {/* Header & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
@@ -312,7 +312,7 @@ const ApplicationDetailsPage = () => {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">
                 {application.applicationNumber || 'Application Details'}
               </h1>
               <button
@@ -430,7 +430,7 @@ const ApplicationDetailsPage = () => {
                 <FileCheck className="w-4 h-4 text-[#042C53]" /> Program & Study Overview
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-5">
+            <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Course Name</span>

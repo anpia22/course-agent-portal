@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
@@ -23,18 +23,21 @@ import {
   FileText,
   User,
   ChevronDown,
-  ArrowUpRight
+  ArrowUpRight,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const SupportPage = () => {
-  const { tickets, createTicket, addTicketResponse, loading } = useData();
+  const { tickets = [], createTicket, addTicketResponse, loading } = useData();
 
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [openFaq, setOpenFaq] = useState(null);
+  const [mobileTab, setMobileTab] = useState('faqs'); // 'faqs' | 'tickets'
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -43,7 +46,7 @@ const SupportPage = () => {
     priority: 'Medium'
   });
   const location = useLocation();
-  
+
   useEffect(() => {
     if (location.state?.openNewTicket) {
       setIsNewTicketOpen(true);
@@ -55,7 +58,8 @@ const SupportPage = () => {
       }
     }
   }, [location]);
-  const faqs = [
+
+  const faqs = useMemo(() => [
     // Account & Activation
     {
       id: 'a1',
@@ -73,7 +77,7 @@ const SupportPage = () => {
       id: 'a3',
       category: 'Account & Activation',
       question: 'My application is approved. When can I submit students?',
-      answer: 'After approval, the Head of Admission issues your Agent Contract in the portal. Download it, sign it and upload the signed copy from your dashboard. QStudy then uploads your E-Certificate and your account becomes Active. You can submit students only once your account is active. Registration is one time only; the contract is renewable.'
+      answer: 'After approval, the Head of Admission issues your Agent Contract in the portal. Download it, sign it and upload the signed copy from your dashboard or Settings. QStudy then issues your E-Certificate and your account becomes Active. You can submit students once your account is active.'
     },
     {
       id: 'a4',
@@ -162,7 +166,21 @@ const SupportPage = () => {
       question: 'How do I contact QStudy?',
       answer: 'Use Live Chat to message the QStudy team directly (there is a WhatsApp link in the chat), or raise a support ticket from this page for anything that needs tracking.'
     }
-  ];
+  ], []);
+
+  // Filter FAQs based on search
+  const filteredFaqs = useMemo(() => {
+    if (!searchQuery.trim()) return faqs;
+    const q = searchQuery.toLowerCase().trim();
+    return faqs.filter(
+      (f) =>
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q)
+    );
+  }, [searchQuery, faqs]);
+
+  const categories = useMemo(() => [...new Set(filteredFaqs.map((f) => f.category))], [filteredFaqs]);
 
   const handleCreateTicket = async () => {
     if (!formData.subject || !formData.description) return;
@@ -171,6 +189,7 @@ const SupportPage = () => {
       await createTicket(formData);
       setIsNewTicketOpen(false);
       setFormData({ subject: '', description: '', category: 'Technical Issue', priority: 'Medium' });
+      setMobileTab('tickets');
     } catch (error) {
       console.error('Failed to create ticket:', error);
     }
@@ -201,34 +220,49 @@ const SupportPage = () => {
   };
 
   return (
-    <div className="space-y-8 pb-12 bg-[#F9FAFB] min-h-screen">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-[#042C53] rounded-3xl mx-4 md:mx-8 mt-8 p-12 md:p-16 text-center shadow-2xl shadow-[#042C53]/20">
-        <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-          <h1 className="text-2xl font-semibold text-[#B5D4F4] font-['Outfit'] tracking-tight">
-            Agent Support Centre
+    <div className="space-y-4 sm:space-y-8 pb-12 bg-[#F9FAFB] min-h-screen" data-testid="agent-support-page">
+      {/* ── Hero Search Section ── */}
+      <div className="relative overflow-hidden bg-[#042C53] rounded-2xl sm:rounded-3xl mx-3 sm:mx-6 lg:mx-8 mt-3 sm:mt-8 p-5 sm:p-10 md:p-14 text-center shadow-xl shadow-[#042C53]/15">
+        <div className="relative z-10 max-w-2xl mx-auto space-y-4 sm:space-y-5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-[#B5D4F4] backdrop-blur-sm border border-white/10">
+            <HelpCircle className="w-3.5 h-3.5 text-[#85B7EB]" />
+            Agent Knowledge Base &amp; Help Desk
+          </div>
+          <h1 className="text-xl sm:text-3xl font-bold text-white font-['Outfit'] tracking-tight">
+            How can we help you today?
           </h1>
-          <p className="text-[#85B7EB] text-sm md:text-base font-medium max-w-lg mx-auto leading-relaxed">
-            How can we help you today? Search our knowledge base or reach out to our institutional support team.
+          <p className="text-[#85B7EB] text-xs sm:text-sm font-medium max-w-lg mx-auto leading-relaxed">
+            Search our operational guides, read institutional FAQs, or submit a support ticket to our admissions team.
           </p>
-          <div className="relative max-w-xl mx-auto group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#042C53] transition-colors" />
+
+          <div className="relative max-w-xl mx-auto group pt-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-focus-within:text-[#042C53] transition-colors" />
             <input
               type="text"
-              placeholder="Search for articles, guides, and troubleshooting..."
-              className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-medium focus:ring-4 focus:ring-[#B5D4F4]/30 shadow-xl transition-all"
+              placeholder="Search guides, questions, or keywords..."
+              className="w-full bg-white border-none rounded-xl sm:rounded-2xl py-3 sm:py-3.5 pl-10 sm:pl-12 pr-10 text-xs sm:text-sm font-medium focus:ring-4 focus:ring-[#B5D4F4]/30 shadow-lg text-[#111827] placeholder:text-gray-400 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
-        {/* Abstract shapes for premium look */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full -ml-32 -mb-32 blur-3xl" />
+        {/* Subtle decorative shapes */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-400/10 rounded-full -ml-32 -mb-32 blur-3xl pointer-events-none" />
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-8">
+      {/* ── Quick Category Links ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 px-3 sm:px-6 lg:px-8">
         {[
           { label: 'Account & Activation', icon: User, color: '#EEEDFE', iconColor: '#3C3489' },
           { label: 'Students & Applications', icon: UserPlus, color: '#E6F1FB', iconColor: '#0C447C' },
@@ -239,120 +273,220 @@ const SupportPage = () => {
           return (
             <button
               key={idx}
+              type="button"
               onClick={() => {
+                setMobileTab('faqs');
                 const first = faqs.find(f => f.category === item.label);
                 if (first) setOpenFaq(first.id);
-                document
-                  .getElementById(`faq-${item.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`)
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const elem = document.getElementById(`faq-${item.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`);
+                if (elem) elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="flex flex-col items-center p-6 bg-white border border-gray-100 rounded-2xl hover:border-[#042C53] hover:shadow-lg transition-all group"
+              className="flex flex-col items-center p-3.5 sm:p-5 bg-white border border-gray-100 rounded-xl sm:rounded-2xl hover:border-[#042C53]/40 hover:shadow-md transition-all group text-center"
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-2 sm:mb-3 transition-transform group-hover:scale-105 shrink-0"
                 style={{ backgroundColor: item.color }}
               >
-                <item.icon className="w-6 h-6" style={{ color: item.iconColor }} />
+                <item.icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: item.iconColor }} />
               </div>
-              <span className="text-sm font-bold text-[#111827]">{item.label}</span>
-              <span className="text-[11px] text-gray-500 mt-1 font-medium">{count} articles</span>
+              <span className="text-xs sm:text-sm font-bold text-[#111827] leading-snug line-clamp-2">
+                {item.label}
+              </span>
+              <span className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5 sm:mt-1 font-medium">
+                {count} articles
+              </span>
             </button>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4 md:px-8">
-        {/* FAQ Section */}
-        <div className="lg:col-span-2 space-y-8">
+      {/* ── Mobile Tab Switcher (Visible only on mobile/tablet screens < lg) ── */}
+      <div className="lg:hidden px-3 sm:px-6">
+        <div className="flex bg-slate-200/70 p-1 rounded-xl text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMobileTab('faqs')}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
+              mobileTab === 'faqs' ? "bg-white text-[#042C53] shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>FAQs &amp; Guides</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab('tickets')}
+            className={cn(
+              "flex-1 py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
+              mobileTab === 'tickets' ? "bg-white text-[#042C53] shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"
+            )}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>My Tickets</span>
+            {tickets.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#042C53] text-white">
+                {tickets.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Main Content Area (Responsive Grid) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 px-3 sm:px-6 lg:px-8">
+        {/* ── FAQ Section (Shown on desktop, or when mobileTab === 'faqs') ── */}
+        <div className={cn("lg:col-span-2 space-y-6", mobileTab !== 'faqs' && "hidden lg:block")}>
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[#111827] font-['Outfit'] flex items-center gap-2">
-              Frequently Asked Questions
-            </h2>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-[#111827] font-['Outfit'] flex items-center gap-2">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {searchQuery ? `Showing results for "${searchQuery}"` : 'Browse official answers for partner agencies'}
+              </p>
+            </div>
+            {/* Quick Raise Ticket button for mobile when in FAQs view */}
+            <Button
+              onClick={() => setIsNewTicketOpen(true)}
+              size="sm"
+              className="lg:hidden bg-[#042C53] hover:bg-[#0C447C] text-white text-xs font-semibold h-8 px-3 rounded-lg gap-1.5"
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5" />
+              New Ticket
+            </Button>
           </div>
 
-          <div className="space-y-8">
-            {[...new Set(faqs.map(f => f.category))].map((cat) => {
-              const categoryFaqs = faqs.filter(f => f.category === cat);
-              if (categoryFaqs.length === 0) return null;
+          {categories.length === 0 ? (
+            <div className="bg-white border border-gray-100 rounded-2xl p-10 text-center text-gray-500">
+              <HelpCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">No matching articles found</p>
+              <p className="text-xs text-gray-400 mt-1">Try another keyword or submit a ticket directly.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchQuery('')}
+                className="mt-3 text-xs"
+              >
+                Clear Search
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {categories.map((cat) => {
+                const categoryFaqs = filteredFaqs.filter((f) => f.category === cat);
+                if (categoryFaqs.length === 0) return null;
 
-              return (
-                <div key={cat} id={`faq-${cat.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`} className="space-y-4 scroll-mt-24">
-                  <div className="flex items-center gap-3 px-1">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{cat}</span>
-                    <div className="h-[1px] w-full bg-gray-100" />
-                  </div>
-                  <div className="space-y-3">
-                    {categoryFaqs.map((faq) => (
-                      <div
-                        key={faq.id}
-                        className="bg-white border border-gray-100 rounded-2xl overflow-hidden transition-all hover:shadow-sm"
-                      >
-                        <button
-                          onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
-                          className="w-full flex items-center justify-between p-5 text-left group"
-                        >
-                          <span className="text-sm font-semibold text-[#111827] group-hover:text-[#042C53] transition-colors">{faq.question}</span>
-                          <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform", openFaq === faq.id && "rotate-180")} />
-                        </button>
-                        {openFaq === faq.id && (
-                          <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-200">
-                            <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                              {faq.answer}
-                            </p>
+                return (
+                  <div
+                    key={cat}
+                    id={`faq-${cat.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
+                    className="space-y-3 scroll-mt-24"
+                  >
+                    <div className="flex items-center gap-3 px-1">
+                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        {cat}
+                      </span>
+                      <div className="h-px w-full bg-gray-200" />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {categoryFaqs.map((faq) => {
+                        const isOpen = openFaq === faq.id;
+                        return (
+                          <div
+                            key={faq.id}
+                            className="bg-white border border-gray-200/80 rounded-xl sm:rounded-2xl overflow-hidden transition-all hover:border-gray-300 shadow-xs"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setOpenFaq(isOpen ? null : faq.id)}
+                              className="w-full flex items-center justify-between p-4 sm:p-5 text-left group gap-3"
+                            >
+                              <span className="text-xs sm:text-sm font-semibold text-[#111827] group-hover:text-[#042C53] transition-colors leading-snug">
+                                {faq.question}
+                              </span>
+                              <ChevronDown
+                                className={cn(
+                                  "w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform shrink-0",
+                                  isOpen && "rotate-180 text-[#042C53]"
+                                )}
+                              />
+                            </button>
+                            {isOpen && (
+                              <div className="px-4 pb-4 sm:px-5 sm:pb-5 animate-in slide-in-from-top-1 duration-200">
+                                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-normal pt-1 border-t border-gray-100">
+                                  {faq.answer}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Tickets Section */}
-        <div className="lg:sticky lg:top-24 lg:h-fit space-y-6">
+        {/* ── Tickets Section (Shown on desktop, or when mobileTab === 'tickets') ── */}
+        <div className={cn("space-y-5 lg:sticky lg:top-24 lg:h-fit", mobileTab !== 'tickets' && "hidden lg:block")}>
           {/* Action Card */}
-          <Card className="border-none shadow-xl shadow-gray-200/50 bg-white rounded-3xl overflow-hidden">
-            <CardHeader className="bg-[#042C53] text-white p-8">
-              <CardTitle className="text-xl font-bold font-['Outfit']">Raise a Support Ticket</CardTitle>
-              <CardDescription className="text-[#85B7EB] text-xs font-medium">
-                Can't find your answer? Our team typically responds within 6 hours.
+          <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <CardHeader className="bg-[#042C53] text-white p-5 sm:p-6">
+              <CardTitle className="text-base sm:text-lg font-bold font-['Outfit']">
+                Raise a Support Ticket
+              </CardTitle>
+              <CardDescription className="text-[#85B7EB] text-xs font-medium mt-1">
+                Can't find your answer? Our institutional team typically responds within 6 hours.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="p-4 sm:p-5">
               <Button
                 onClick={() => setIsNewTicketOpen(true)}
-                className="w-full h-12 bg-[#042C53] hover:bg-[#0C447C] text-white font-bold rounded-xl shadow-lg shadow-[#042C53]/20"
+                className="w-full h-11 bg-[#042C53] hover:bg-[#0C447C] text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs gap-2"
               >
-                <MessageSquarePlus className="w-4 h-4 mr-2" />
+                <MessageSquarePlus className="w-4 h-4" />
                 Submit New Ticket
               </Button>
             </CardContent>
           </Card>
 
-          {/* Ticket List */}
-          <Card className="border-none shadow-xl shadow-gray-200/50 bg-white rounded-3xl overflow-hidden">
-            <CardHeader className="p-6 border-b border-gray-50 flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-bold font-['Outfit']">My Tickets</CardTitle>
-              <button className="text-[#042C53] text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:underline">
-                View All <ArrowUpRight className="w-3 h-3" />
-              </button>
+          {/* Ticket List Card */}
+          <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-gray-100 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm sm:text-base font-bold font-['Outfit']">
+                  My Support Tickets
+                </CardTitle>
+                <p className="text-[11px] text-gray-500 font-medium">
+                  {tickets.length} total {tickets.length === 1 ? 'ticket' : 'tickets'}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-semibold text-[#042C53] bg-[#E6F1FB] border-[#B5D4F4]">
+                Direct Desk
+              </Badge>
             </CardHeader>
+
             <CardContent className="p-0">
               {tickets.length === 0 ? (
-                <div className="p-12 text-center">
-                  <MessageSquare className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">No active tickets</p>
+                <div className="p-8 sm:p-10 text-center">
+                  <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs font-semibold text-gray-700">No active tickets</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Submit a ticket whenever you need assistance with admissions or payouts.
+                  </p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-gray-100 max-h-[420px] overflow-y-auto">
                   {tickets.map((ticket) => (
                     <div
                       key={ticket.id}
                       onClick={() => setSelectedTicket(ticket)}
                       className={cn(
-                        "p-5 cursor-pointer transition-all hover:bg-gray-50 flex items-start gap-4",
+                        "p-4 cursor-pointer transition-all hover:bg-gray-50 flex items-start gap-3",
                         selectedTicket?.id === ticket.id && "bg-blue-50/50 border-l-4 border-l-[#042C53]"
                       )}
                     >
@@ -360,13 +494,15 @@ const SupportPage = () => {
                         "w-2 h-2 rounded-full mt-1.5 shrink-0",
                         ticket.status === 'Open' ? "bg-red-500" : ticket.status === 'In Progress' ? "bg-amber-500" : "bg-emerald-500"
                       )} />
-                      <div className="flex-1 min-width-0">
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start gap-2">
-                          <h4 className="text-sm font-bold text-[#111827] truncate">{ticket.subject}</h4>
-                          {getStatusBadge(ticket.status)}
+                          <h4 className="text-xs sm:text-sm font-bold text-[#111827] truncate">
+                            {ticket.subject}
+                          </h4>
+                          <span className="shrink-0">{getStatusBadge(ticket.status)}</span>
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-1 font-medium">
-                          {ticket.category || 'General'} · {format(new Date(ticket.createdAt), 'MMM dd')}
+                        <p className="text-[11px] text-gray-500 mt-1 font-medium truncate">
+                          {ticket.category || 'General'} · {format(new Date(ticket.createdAt), 'MMM dd, yyyy')}
                         </p>
                       </div>
                     </div>
@@ -378,88 +514,101 @@ const SupportPage = () => {
         </div>
       </div>
 
-      {/* Ticket Detail Modal */}
+      {/* ── Ticket Detail Modal (Mobile-responsive) ── */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none rounded-3xl shadow-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-2xl p-0 overflow-hidden border-none rounded-2xl sm:rounded-3xl shadow-2xl max-h-[92vh] flex flex-col">
           {selectedTicket && (
-            <div className="flex flex-col h-[80vh]">
-              <div className="p-8 bg-[#042C53] text-white">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-2xl font-bold font-['Outfit']">{selectedTicket.subject}</h2>
+            <div className="flex flex-col h-full max-h-[92vh]">
+              {/* Modal Header */}
+              <div className="p-4 sm:p-6 bg-[#042C53] text-white shrink-0">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h2 className="text-base sm:text-xl font-bold font-['Outfit'] truncate">
+                        {selectedTicket.subject}
+                      </h2>
                       {getStatusBadge(selectedTicket.status)}
                     </div>
-                    <p className="text-[#85B7EB] text-xs font-medium">
-                      Ticket #{selectedTicket.id.slice(-6).toUpperCase()} · Created {format(new Date(selectedTicket.createdAt), 'MMMM dd, yyyy')}
+                    <p className="text-[#85B7EB] text-[11px] sm:text-xs font-medium">
+                      Ticket #{selectedTicket.id?.slice(-6).toUpperCase()} · Created {format(new Date(selectedTicket.createdAt), 'MMM dd, yyyy')}
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-6 mt-6">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#85B7EB]">Category</span>
-                    <p className="text-sm font-semibold">{selectedTicket.category || 'Technical Issue'}</p>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 mt-3 sm:mt-4 pt-3 border-t border-white/10 text-xs">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#85B7EB] block">Category</span>
+                    <span className="font-semibold text-white">{selectedTicket.category || 'General'}</span>
                   </div>
-                  <div className="space-y-1 text-right">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#85B7EB]">Priority</span>
-                    <p className="text-sm font-semibold">{selectedTicket.priority}</p>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#85B7EB] block">Priority</span>
+                    <span className="font-semibold text-white">{selectedTicket.priority || 'Medium'}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/50">
+              {/* Chat Thread */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50/60">
                 {/* Initial Description */}
                 <div className="flex justify-start">
-                  <div className="bg-white border border-gray-100 p-6 rounded-2xl rounded-tl-none shadow-sm max-w-[90%]">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#042C53] mb-2 block opacity-50">Initial Inquiry</span>
-                    <p className="text-sm font-medium text-gray-700 leading-relaxed">{selectedTicket.description}</p>
+                  <div className="bg-white border border-gray-200/80 p-3.5 sm:p-5 rounded-xl sm:rounded-2xl rounded-tl-none shadow-xs max-w-[92%]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#042C53] mb-1.5 block">
+                      Initial Inquiry
+                    </span>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedTicket.description}
+                    </p>
                   </div>
                 </div>
 
-                {/* Chat Responses */}
+                {/* Responses */}
                 {selectedTicket.responses?.map((resp, idx) => (
                   <div
                     key={idx}
                     className={cn(
-                      "flex flex-col max-w-[85%] p-5 rounded-2xl shadow-sm",
-                      resp.senderId.role === 'admin'
-                        ? "self-start bg-white border border-gray-100 rounded-tl-none"
+                      "flex flex-col max-w-[88%] p-3.5 sm:p-4 rounded-xl sm:rounded-2xl shadow-xs",
+                      resp.senderId?.role === 'admin'
+                        ? "self-start bg-white border border-gray-200/80 rounded-tl-none"
                         : "self-end bg-[#042C53] text-white rounded-tr-none ml-auto"
                     )}
                   >
-                    <div className="flex justify-between items-center mb-2 gap-6">
+                    <div className="flex justify-between items-center mb-1.5 gap-4">
                       <span className={cn(
-                        "text-[9px] font-bold uppercase tracking-widest",
-                        resp.senderId.role === 'admin' ? 'text-[#042C53]' : 'text-[#B5D4F4]'
+                        "text-[9px] font-bold uppercase tracking-wider",
+                        resp.senderId?.role === 'admin' ? 'text-[#042C53]' : 'text-[#B5D4F4]'
                       )}>
-                        {resp.senderId.role === 'admin' ? 'Institutional Support' : 'Agency Representative'}
+                        {resp.senderId?.role === 'admin' ? 'Support Team' : 'You (Agent)'}
                       </span>
-                      <span className="text-[9px] font-bold opacity-50">
-                        {format(new Date(resp.timestamp), 'HH:mm')}
+                      <span className="text-[9px] font-medium opacity-60">
+                        {resp.timestamp ? format(new Date(resp.timestamp), 'HH:mm · MMM d') : ''}
                       </span>
                     </div>
-                    <p className="text-sm font-medium leading-relaxed">{resp.message}</p>
+                    <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                      {resp.message}
+                    </p>
                   </div>
                 ))}
               </div>
 
-              <div className="p-8 bg-white border-t border-gray-100">
-                <div className="flex gap-4 items-end">
+              {/* Reply Box */}
+              <div className="p-3.5 sm:p-5 bg-white border-t border-gray-200 shrink-0">
+                <div className="flex gap-2 sm:gap-3 items-end">
                   <div className="flex-1 relative">
                     <Textarea
-                      placeholder="Type your response here..."
-                      className="min-h-[100px] bg-gray-50 border-gray-200 rounded-2xl focus:ring-[#042C53]/10 focus:border-[#042C53] text-sm font-medium p-4"
+                      placeholder="Type your reply here..."
+                      className="min-h-[70px] sm:min-h-[90px] bg-gray-50 border-gray-200 rounded-xl focus:ring-[#042C53]/10 focus:border-[#042C53] text-xs sm:text-sm font-medium p-3"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                     />
                   </div>
                   <Button
                     size="icon"
-                    className="h-14 w-14 rounded-2xl bg-[#042C53] hover:bg-[#0C447C] shadow-lg shadow-[#042C53]/20 shrink-0"
+                    className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-[#042C53] hover:bg-[#0C447C] shadow-sm shrink-0"
                     disabled={!newMessage.trim() || loading || selectedTicket.status === 'Closed'}
                     onClick={handleSendMessage}
+                    title="Send Reply"
                   >
-                    <Send className="w-5 h-5 text-white" />
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </Button>
                 </div>
               </div>
@@ -468,25 +617,29 @@ const SupportPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* New Ticket Dialog */}
+      {/* ── New Ticket Dialog (Mobile-responsive) ── */}
       <Dialog open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-3xl p-8">
+        <DialogContent className="w-[94vw] sm:max-w-[500px] rounded-2xl sm:rounded-3xl p-5 sm:p-7 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold font-['Outfit'] text-[#042C53]">Raise Support Ticket</DialogTitle>
-            <DialogDescription className="font-medium">
-              Provide details about your issue and our team will get back to you shortly.
+            <DialogTitle className="text-lg sm:text-2xl font-bold font-['Outfit'] text-[#042C53]">
+              Raise Support Ticket
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm font-medium">
+              Provide details about your query and our team will get back to you shortly.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category" className="text-xs font-bold uppercase tracking-widest text-gray-500">Category</Label>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="category" className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Category
+                </Label>
                 <Select
                   value={formData.category}
                   onValueChange={(val) => setFormData({ ...formData, category: val })}
                 >
-                  <SelectTrigger className="rounded-xl bg-gray-50 border-gray-100 font-semibold h-11">
+                  <SelectTrigger className="rounded-xl bg-gray-50 border-gray-200 font-semibold h-10 text-xs">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -497,13 +650,16 @@ const SupportPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="priority" className="text-xs font-bold uppercase tracking-widest text-gray-500">Priority</Label>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="priority" className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  Priority
+                </Label>
                 <Select
                   value={formData.priority}
                   onValueChange={(val) => setFormData({ ...formData, priority: val })}
                 >
-                  <SelectTrigger className="rounded-xl bg-gray-50 border-gray-100 font-semibold h-11">
+                  <SelectTrigger className="rounded-xl bg-gray-50 border-gray-200 font-semibold h-10 text-xs">
                     <SelectValue placeholder="Priority" />
                   </SelectTrigger>
                   <SelectContent>
@@ -515,35 +671,47 @@ const SupportPage = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subject" className="text-xs font-bold uppercase tracking-widest text-gray-500">Subject</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="subject" className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                Subject *
+              </Label>
               <Input
                 id="subject"
-                placeholder="Brief description of the issue"
-                className="rounded-xl bg-gray-50 border-gray-100 font-semibold h-11"
+                placeholder="Brief summary of your query"
+                className="rounded-xl bg-gray-50 border-gray-200 font-semibold h-10 text-xs"
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-xs font-bold uppercase tracking-widest text-gray-500">Message</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                Message Description *
+              </Label>
               <Textarea
                 id="description"
-                placeholder="Describe your issue in detail..."
-                className="min-h-[150px] rounded-xl bg-gray-50 border-gray-100 font-medium p-4"
+                placeholder="Describe your issue or question in detail..."
+                className="min-h-[120px] rounded-xl bg-gray-50 border-gray-200 font-medium p-3 text-xs leading-relaxed"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
           </div>
 
-          <DialogFooter className="gap-3 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsNewTicketOpen(false)} className="rounded-xl font-bold px-6">Cancel</Button>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-2">
             <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsNewTicketOpen(false)}
+              className="rounded-xl text-xs font-semibold h-10 w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
               onClick={handleCreateTicket}
-              disabled={!formData.subject || !formData.description || loading}
-              className="bg-[#042C53] hover:bg-[#0C447C] text-white rounded-xl font-bold px-8"
+              disabled={!formData.subject.trim() || !formData.description.trim() || loading}
+              className="bg-[#042C53] hover:bg-[#0C447C] text-white rounded-xl text-xs font-semibold h-10 px-6 w-full sm:w-auto"
             >
               Submit Ticket
             </Button>

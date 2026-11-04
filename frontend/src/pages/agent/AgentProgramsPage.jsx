@@ -9,7 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpRight,
-  BookOpen
+  BookOpen,
+  X
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -130,38 +131,54 @@ const AgentProgramsPage = () => {
   const hasFilters = searchQuery || levelFilter !== 'all' || fieldFilter !== 'all' || universityFilter !== 'all';
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="agent-programs-page">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-3.5 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-4 sm:space-y-6" data-testid="agent-programs-page">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">Programs & Courses</h1>
-          <p className="text-xs text-gray-500 mt-1 font-medium">
-            Search Malaysian university programs by qualification level, subject field, or university, then apply directly.
+          <h1 className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">
+            Programs &amp; Courses
+          </h1>
+          <p className="text-xs text-gray-500 mt-0.5 sm:mt-1 font-medium max-w-2xl">
+            Search Malaysian university programs by qualification level, subject field, or institution, then apply directly.
           </p>
         </div>
-        <div className="text-xs text-gray-600 bg-white border border-gray-200 px-3.5 py-2 rounded-lg font-medium w-fit">
+        <div className="text-xs text-gray-600 bg-white border border-gray-200 px-3 py-1.5 sm:py-2 rounded-lg font-medium w-fit shrink-0">
           <span className="font-bold text-[#042C53]">{totalCount}</span> {totalCount === 1 ? 'program' : 'programs'}
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="border-[#E5E7EB] bg-white shadow-none">
-        <CardContent className="p-4 space-y-3">
+      {/* ── Filters Card ── */}
+      <Card className="border-[#E5E7EB] bg-white shadow-none rounded-2xl">
+        <CardContent className="p-3.5 sm:p-4 space-y-3">
           <form
             onSubmit={(e) => { e.preventDefault(); flushSearch(searchQuery); }}
-            className="flex flex-col lg:flex-row gap-3"
+            className="flex flex-col lg:flex-row gap-2.5 sm:gap-3"
           >
+            {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by program name, code or course subject (e.g. Business, IT, Accounting)..."
-                className="pl-9 text-xs bg-[#F9FAFB] border-gray-200"
+                placeholder="Search by program name, code or subject..."
+                className="pl-9 pr-8 text-xs bg-[#F9FAFB] border-gray-200 h-10 rounded-xl"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); flushSearch(''); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            {/* Filter Dropdowns Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-row items-center gap-2 w-full lg:w-auto">
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className="w-full sm:w-[170px] text-xs bg-[#F9FAFB] border-gray-200">
+                <SelectTrigger className="w-full lg:w-[160px] text-xs bg-[#F9FAFB] border-gray-200 h-10 lg:h-9 rounded-xl lg:rounded-lg">
                   <SelectValue placeholder="Program Level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -169,8 +186,9 @@ const AgentProgramsPage = () => {
                   {LEVELS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+
               <Select value={fieldFilter} onValueChange={setFieldFilter}>
-                <SelectTrigger className="w-full sm:w-[200px] text-xs bg-[#F9FAFB] border-gray-200">
+                <SelectTrigger className="w-full lg:w-[180px] text-xs bg-[#F9FAFB] border-gray-200 h-10 lg:h-9 rounded-xl lg:rounded-lg">
                   <SelectValue placeholder="Course / Subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,29 +196,48 @@ const AgentProgramsPage = () => {
                   {SUBJECT_FIELDS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+
               <Select value={universityFilter} onValueChange={setUniversityFilter}>
-                <SelectTrigger className="w-full sm:w-[210px] text-xs bg-[#F9FAFB] border-gray-200">
+                <SelectTrigger className="w-full lg:w-[190px] text-xs bg-[#F9FAFB] border-gray-200 h-10 lg:h-9 rounded-xl lg:rounded-lg">
                   <SelectValue placeholder="University" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
-                  <SelectItem value="all">All Malaysian Universities</SelectItem>
+                  <SelectItem value="all">All Universities</SelectItem>
                   {universities.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button type="submit" size="sm" className="bg-[#042C53] hover:bg-[#0C447C] text-xs h-9 px-4">Search</Button>
-              {hasFilters && (
-                <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-xs h-9">Reset</Button>
-              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 col-span-1 sm:col-span-3 lg:col-span-1 pt-1 sm:pt-0">
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-[#042C53] hover:bg-[#0C447C] text-white text-xs font-semibold h-10 lg:h-9 px-5 rounded-xl lg:rounded-lg flex-1 lg:flex-initial justify-center"
+                >
+                  Search
+                </Button>
+                {hasFilters && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    className="text-xs font-medium h-10 lg:h-9 px-3 rounded-xl lg:rounded-lg border-gray-200 text-gray-600 hover:text-gray-900 justify-center"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
 
-          {/* Quick Level Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Level:</span>
+          {/* Quick Level Filter Chips (Horizontal swipe on mobile) */}
+          <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 overflow-x-auto no-scrollbar scroll-row pb-0.5">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">Level:</span>
             <button
               type="button"
               onClick={() => setLevelFilter('all')}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+              className={`text-[11px] font-semibold px-3 py-1 rounded-full transition-colors shrink-0 ${
                 levelFilter === 'all' ? 'bg-[#042C53] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -211,7 +248,7 @@ const AgentProgramsPage = () => {
                 key={l.value}
                 type="button"
                 onClick={() => setLevelFilter(l.value)}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+                className={`text-[11px] font-semibold px-3 py-1 rounded-full transition-colors shrink-0 ${
                   levelFilter === l.value ? 'bg-[#042C53] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -222,14 +259,14 @@ const AgentProgramsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Programs */}
+      {/* ── Programs List ── */}
       {loading ? (
         <div className="text-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#042C53] mx-auto"></div>
           <p className="text-xs text-gray-500 mt-3 font-medium">Loading programs...</p>
         </div>
       ) : programs.length === 0 ? (
-        <Card className="border-[#E5E7EB] bg-white shadow-none">
+        <Card className="border-[#E5E7EB] bg-white shadow-none rounded-2xl">
           <CardContent className="text-center py-16 text-gray-500">
             <BookOpen size={40} className="mx-auto mb-3 opacity-20" />
             <p className="font-semibold text-sm text-gray-700">No programs found</p>
@@ -239,7 +276,7 @@ const AgentProgramsPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {programs.map((program) => {
             const fee = readFee(program.tuitionFee);
             const natTiers = extractNationalityFees(program.description);
@@ -247,42 +284,50 @@ const AgentProgramsPage = () => {
             return (
               <div
                 key={program.id}
-                className="bg-white rounded-3xl border border-[#E5E7EB] hover:border-[#042C53]/40 hover:shadow-md transition-all p-6 flex flex-col md:flex-row md:items-center gap-5"
+                className="bg-white rounded-2xl sm:rounded-3xl border border-[#E5E7EB] hover:border-[#042C53]/40 hover:shadow-md transition-all p-4 sm:p-6 flex flex-col md:flex-row md:items-center gap-4 sm:gap-5"
               >
-                <div className="flex-1 min-w-0 space-y-3">
-                  {/* Chips */}
-                  <div className="flex flex-wrap items-center gap-2">
+                {/* ── Left / Main Program Details ── */}
+                <div className="flex-1 min-w-0 space-y-2.5 sm:space-y-3">
+                  {/* Chips Row */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     {program.level && (
-                      <span className="inline-flex items-center gap-1.5 bg-[#EEF2FF] text-[#1E3A8A] text-xs font-semibold px-3 py-1.5 rounded-lg">
+                      <span className="inline-flex items-center gap-1.5 bg-[#EEF2FF] text-[#1E3A8A] text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg">
                         <GraduationCap size={13} /> {program.level}
                       </span>
                     )}
                     {program.duration && (
-                      <span className="inline-flex items-center gap-1.5 bg-[#F3F4F6] text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg">
+                      <span className="inline-flex items-center gap-1.5 bg-[#F3F4F6] text-gray-700 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg">
                         <Clock size={13} /> {program.duration}
                       </span>
                     )}
                     {program.code && (
-                      <span className="border border-gray-200 text-gray-600 text-xs font-mono font-semibold px-3 py-1.5 rounded-lg">{program.code}</span>
+                      <span className="border border-gray-200 text-gray-600 text-[11px] sm:text-xs font-mono font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg">
+                        {program.code}
+                      </span>
                     )}
                     {natTiers.length > 0 && (
-                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
-                        Nationality Rates Available ({natTiers.length})
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg">
+                        Nationality Rates ({natTiers.length})
                       </span>
                     )}
                   </div>
 
-                  <h2 className="text-xl font-bold text-[#111827] font-['Outfit'] leading-snug">
-                    <button type="button" onClick={() => navigate(`/agent/programs/${program.id}`)} className="text-left hover:text-[#042C53] hover:underline">
+                  {/* Program Title */}
+                  <h2 className="text-base sm:text-xl font-bold text-[#111827] font-['Outfit'] leading-snug">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/agent/programs/${program.id}`)}
+                      className="text-left hover:text-[#042C53] hover:underline transition-colors"
+                    >
                       {program.name}
                     </button>
                   </h2>
 
-                  {/* University */}
-                  <div className="flex items-center gap-2.5 text-sm text-gray-600 flex-wrap">
+                  {/* University / Provider */}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 flex-wrap">
                     {program.university ? (
                       <>
-                        <UniversityLogo university={program.university} size="sm" />
+                        <UniversityLogo university={program.university} size="sm" className="shrink-0" />
                         <button
                           type="button"
                           onClick={() => navigate(`/agent/universities/${program.university.id}`)}
@@ -292,52 +337,79 @@ const AgentProgramsPage = () => {
                         </button>
                         <span className="text-gray-300">•</span>
                         <span>Malaysia</span>
-                        {extra > 0 && <Badge variant="outline" className="text-[10px] font-semibold">+{extra} more {extra === 1 ? 'university' : 'universities'}</Badge>}
+                        {extra > 0 && (
+                          <Badge variant="outline" className="text-[10px] font-semibold py-0">
+                            +{extra} more
+                          </Badge>
+                        )}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-2 font-medium"><Building2 size={16} className="text-gray-400" /> Offered by partner Malaysian universities</span>
+                      <span className="inline-flex items-center gap-1.5 font-medium">
+                        <Building2 size={15} className="text-gray-400 shrink-0" /> Offered by partner universities
+                      </span>
                     )}
                   </div>
 
-                  {program.department && <p className="text-xs text-gray-400">{program.department}</p>}
+                  {program.department && (
+                    <p className="text-[11px] sm:text-xs text-gray-400 truncate">{program.department}</p>
+                  )}
                 </div>
 
-                {/* Price and action */}
-                <div className="flex items-center gap-5 md:pl-6 md:border-l border-gray-200 shrink-0">
-                  <div>
-                    <p className="text-xs text-gray-500">Tuition Fee</p>
+                {/* ── Right / Bottom: Tuition Fee & Actions ── */}
+                <div className="pt-3.5 border-t border-gray-100 md:pt-0 md:border-t-0 md:pl-6 md:border-l border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-5 shrink-0">
+                  {/* Fee Section */}
+                  <div className="flex items-center justify-between md:block">
+                    <span className="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider block">
+                      Tuition Fee
+                    </span>
                     {fee ? (
                       fee.hasDual ? (
-                        <div className="space-y-1 mt-1">
+                        <div className="flex items-center gap-2 md:space-y-1 md:block mt-0.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-[#042C53]">Intl</span>
-                            <span className="text-base font-bold text-[#111827] font-['Outfit'] whitespace-nowrap">{fee.international.text}</span>
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-[#042C53]">
+                              Intl
+                            </span>
+                            <span className="text-sm sm:text-base font-bold text-[#111827] font-['Outfit'] whitespace-nowrap">
+                              {fee.international.text}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Local</span>
-                            <span className="text-sm font-bold text-emerald-800 font-['Outfit'] whitespace-nowrap">{fee.local.text}</span>
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                              Local
+                            </span>
+                            <span className="text-xs sm:text-sm font-bold text-emerald-800 font-['Outfit'] whitespace-nowrap">
+                              {fee.local.text}
+                            </span>
                           </div>
                         </div>
                       ) : (
-                        <p className="text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">{fee.text}</p>
+                        <p className="text-lg sm:text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">
+                          {fee.text}
+                        </p>
                       )
                     ) : (
-                      <p className="text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">On request</p>
+                      <p className="text-lg sm:text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">
+                        On request
+                      </p>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/agent/programs/${program.id}`)}
-                    className="h-12 rounded-xl px-4 text-sm font-semibold border-gray-200 hover:border-[#042C53] hover:text-white whitespace-nowrap"
-                  >
-                    Details
-                  </Button>
-                  <Button
-                    onClick={() => apply(program)}
-                    className="h-12 rounded-xl px-5 bg-[#042C53] hover:bg-[#0C447C] text-white text-sm font-semibold gap-2 whitespace-nowrap"
-                  >
-                    Apply now <ArrowUpRight size={16} />
-                  </Button>
+
+                  {/* Actions: Full 2-column touch buttons on mobile, inline on desktop */}
+                  <div className="grid grid-cols-2 md:flex items-center gap-2 sm:gap-2.5 w-full md:w-auto">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/agent/programs/${program.id}`)}
+                      className="h-10 sm:h-11 rounded-xl px-4 text-xs sm:text-sm font-semibold border-gray-200 hover:border-[#042C53] hover:text-[#042C53] justify-center"
+                    >
+                      Details
+                    </Button>
+                    <Button
+                      onClick={() => apply(program)}
+                      className="h-10 sm:h-11 rounded-xl px-4 sm:px-5 bg-[#042C53] hover:bg-[#0C447C] text-white text-xs sm:text-sm font-semibold gap-1.5 justify-center shadow-xs"
+                    >
+                      Apply now <ArrowUpRight size={15} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
@@ -345,15 +417,29 @@ const AgentProgramsPage = () => {
         </div>
       )}
 
-      {/* Pagination */}
+      {/* ── Pagination ── */}
       {totalCount > 0 && (
-        <div className="px-1 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-          <div>Showing {programs.length} of {totalCount} programs · Page {currentPage} of {totalPages}</div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => loadPrograms(currentPage - 1)} disabled={currentPage <= 1 || loading} className="h-8 px-3 text-xs border-gray-200 bg-white">
+        <div className="px-1 pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          <div className="text-center sm:text-left">
+            Showing {programs.length} of {totalCount} programs · Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadPrograms(currentPage - 1)}
+              disabled={currentPage <= 1 || loading}
+              className="flex-1 sm:flex-initial h-9 px-3 text-xs border-gray-200 bg-white hover:bg-gray-50"
+            >
               <ChevronLeft size={14} className="mr-1" /> Previous
             </Button>
-            <Button variant="outline" size="sm" onClick={() => loadPrograms(currentPage + 1)} disabled={currentPage >= totalPages || loading} className="h-8 px-3 text-xs border-gray-200 bg-white">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadPrograms(currentPage + 1)}
+              disabled={currentPage >= totalPages || loading}
+              className="flex-1 sm:flex-initial h-9 px-3 text-xs border-gray-200 bg-white hover:bg-gray-50"
+            >
               Next <ChevronRight size={14} className="ml-1" />
             </Button>
           </div>

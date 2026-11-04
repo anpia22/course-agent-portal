@@ -367,15 +367,15 @@ const AdminDashboard = () => {
 
   return (
     <div className="bg-[#FDFDFF] min-h-screen font-sans" data-testid="admin-dashboard">
-      <div className="p-5 md:p-7">
+      <div className="p-4 sm:p-6 lg:p-7">
         <div className="mb-2">
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Operations Overview</h1>
-          <p className="text-sm font-medium text-slate-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Operations Overview</h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1 leading-relaxed">
             {today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {roleLabel}{view.subtitle !== roleLabel ? ` · ${view.subtitle}` : ''}
           </p>
         </div>
 
-        <div className="h-[0.5px] bg-slate-200 my-5" />
+        <div className="h-[0.5px] bg-slate-200 my-4 sm:my-5" />
 
         {view.showVisa && (
           <div className="mb-6">
@@ -393,12 +393,12 @@ const AdminDashboard = () => {
         </div>
 
         {/* ── At a Glance Breakdown: Agents by Country & Agents by Account Manager ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Card 1: Agents by Country */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#E6F1FB] flex items-center justify-center text-[#0C447C]">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:border-slate-300 transition-all min-w-0">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-[#E6F1FB] flex items-center justify-center text-[#0C447C] shrink-0">
                   <Globe className="w-4 h-4" />
                 </div>
                 <div>
@@ -410,7 +410,7 @@ const AdminDashboard = () => {
               </div>
               <Link
                 to="/admin/agents"
-                className="text-xs font-semibold text-[#0C447C] hover:underline flex items-center gap-1 group"
+                className="text-xs font-semibold text-[#0C447C] hover:underline flex items-center gap-1 group shrink-0"
               >
                 View all <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </Link>
@@ -426,12 +426,12 @@ const AdminDashboard = () => {
                     to={`/admin/agents?country=${encodeURIComponent(item.country)}`}
                     className="block group"
                   >
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-medium text-slate-700 group-hover:text-[#0C447C] transition-colors flex items-center gap-1.5">
+                    <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                      <span className="font-medium text-slate-700 group-hover:text-[#0C447C] transition-colors flex items-center gap-1.5 min-w-0 truncate">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#0C447C]" />
                         {item.country}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="font-bold text-slate-900 font-mono">{item.count}</span>
                         <span className="text-[10px] text-slate-400">({item.percent}%)</span>
                       </div>
@@ -457,10 +457,10 @@ const AdminDashboard = () => {
           </div>
 
           {/* Card 2: Agents by Account Manager */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-slate-300 transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#EEEDFE] flex items-center justify-center text-[#534AB7]">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-sm hover:border-slate-300 transition-all min-w-0">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-[#EEEDFE] flex items-center justify-center text-[#534AB7] shrink-0">
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>
@@ -472,7 +472,7 @@ const AdminDashboard = () => {
               </div>
               <Link
                 to="/admin/team"
-                className="text-xs font-semibold text-[#534AB7] hover:underline flex items-center gap-1 group"
+                className="text-xs font-semibold text-[#534AB7] hover:underline flex items-center gap-1 group shrink-0"
               >
                 Team <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </Link>
@@ -488,9 +488,9 @@ const AdminDashboard = () => {
                     to={am.isUnassigned ? '/admin/agents?accountManagerId=unassigned' : `/admin/agents?accountManagerId=${am.id}`}
                     className="block group"
                   >
-                    <div className="flex items-center justify-between text-xs mb-1">
+                    <div className="flex items-center justify-between gap-2 text-xs mb-1">
                       <span className={cn(
-                        "font-medium transition-colors flex items-center gap-1.5",
+                        "font-medium transition-colors flex items-center gap-1.5 min-w-0 truncate",
                         am.isUnassigned
                           ? "text-amber-700 font-semibold"
                           : "text-slate-700 group-hover:text-[#534AB7]"
@@ -501,7 +501,7 @@ const AdminDashboard = () => {
                         )} />
                         {am.name}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="font-bold text-slate-900 font-mono">{am.count}</span>
                         <span className="text-[10px] text-slate-400">({am.percent}%)</span>
                       </div>
@@ -554,7 +554,7 @@ const AdminDashboard = () => {
                   <Link
                     key={item.id || item._id}
                     to="/admin/news"
-                    className="flex items-start justify-between gap-4 p-4 hover:bg-slate-50 transition-colors"
+                    className="flex items-start justify-between gap-3 sm:gap-4 p-4 hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] text-[#042C53] flex items-center justify-center shrink-0 mt-0.5">

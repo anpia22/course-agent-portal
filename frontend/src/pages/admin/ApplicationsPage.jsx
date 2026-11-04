@@ -218,11 +218,11 @@ const ApplicationsPage = () => {
   }, [applications]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6 font-['Inter']">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 font-['Inter']">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#111827] font-['Outfit'] flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111827] font-['Outfit'] flex items-center gap-2.5">
             <FileCheck className="w-6 h-6 text-[#042C53]" />
             Application Management
           </h1>

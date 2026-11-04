@@ -181,7 +181,7 @@ const AdminInvoicesPage = () => {
 
   const InvoiceList = ({ list }) => (
     <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
-      <Table>
+      <Table className="min-w-[650px]">
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Invoice</TableHead>
@@ -261,7 +261,7 @@ const AdminInvoicesPage = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-5" data-testid="admin-invoices-page">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-5" data-testid="admin-invoices-page">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -296,7 +296,7 @@ const AdminInvoicesPage = () => {
       <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden">
         <div className="h-1.5 bg-[#042C53]" />
         <CardContent className="p-5 sm:p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3">
             {facts.map((fact) => (
               <button
                 key={fact.label}
@@ -330,7 +330,7 @@ const AdminInvoicesPage = () => {
       </div>
 
       {/* Sections */}
-      <div className="flex items-center gap-1 border-b border-[#D1D5DB] overflow-x-auto" role="tablist">
+      <div className="scroll-row items-center gap-1 border-b border-[#D1D5DB]" role="tablist">
         {tabs.map((tab) => {
           const selected = activeTab === tab.key;
           return (
@@ -434,7 +434,7 @@ const AdminInvoicesPage = () => {
 
                 {/* Applications Table */}
                 <div className="border border-[#E5E7EB] rounded-xl overflow-hidden shadow-sm">
-                  <Table>
+                  <Table className="min-w-[650px]">
                     <TableHeader className="bg-[#F9FAFB]">
                       <TableRow>
                         <TableHead className="text-[10px] font-bold text-[#6B7280] uppercase px-6 py-3">Application #</TableHead>

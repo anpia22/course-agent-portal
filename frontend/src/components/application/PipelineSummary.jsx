@@ -37,17 +37,21 @@ const PipelineSummary = ({ applications = [], to }) => {
 
   return (
     <Card className="border-[#E5E7EB] shadow-none bg-white" data-testid="pipeline-summary">
-      <CardHeader className="px-6 pt-6 pb-4 flex flex-row items-start justify-between space-y-0 gap-4">
-        <div>
+      <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 flex flex-row items-start justify-between space-y-0 gap-3 sm:gap-4">
+        <div className="min-w-0">
           <CardTitle className="text-lg font-semibold font-['Outfit'] text-[#111827]">Visa progress</CardTitle>
           <p className="text-sm text-[#6B7280] mt-1">
             {total} live application{total === 1 ? '' : 's'}
           </p>
         </div>
-        {to && <Link to={to} className="text-sm font-semibold text-[#042C53] hover:underline shrink-0">View applications</Link>}
+        {to && (
+          <Link to={to} className="text-xs sm:text-sm font-semibold text-[#042C53] hover:underline shrink-0 mt-1">
+            View<span className="hidden sm:inline"> applications</span>
+          </Link>
+        )}
       </CardHeader>
-      <CardContent className="px-6 pb-6 pt-0">
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
+        <ul className="stat-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {PHASES.map((phase) => {
             const count = phaseTotal(phase);
             return (
@@ -55,16 +59,16 @@ const PipelineSummary = ({ applications = [], to }) => {
                 <button
                   type="button"
                   onClick={() => setOpenPhase(phase)}
-                  className="w-full h-full text-left rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 flex flex-col justify-between transition-colors hover:border-[#042C53] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#042C53]"
+                  className="w-full h-full text-left rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 sm:p-4 flex flex-col justify-between transition-colors hover:border-[#042C53] hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#042C53]"
                   aria-label={`${phase.title}: ${count} applications. Show the numbers per stage`}
                 >
                   <div>
                     <div className={`h-1 w-8 rounded-full ${phase.accent}`} />
-                    <p className="mt-3 text-sm font-semibold text-[#111827]">{phase.title}</p>
-                    <p className="text-xs text-[#6B7280] mt-0.5">{phase.hint}</p>
-                    <p className="mt-3 text-3xl font-semibold text-[#111827] tabular-nums">{count}</p>
+                    <p className="mt-2.5 sm:mt-3 text-sm font-semibold text-[#111827] leading-snug">{phase.title}</p>
+                    <p className="hidden sm:block text-xs text-[#6B7280] mt-0.5">{phase.hint}</p>
+                    <p className="mt-2 sm:mt-3 text-3xl font-semibold text-[#111827] tabular-nums">{count}</p>
                   </div>
-                  <span className="mt-4 inline-flex items-center text-xs font-semibold text-[#042C53]">
+                  <span className="mt-2.5 sm:mt-4 inline-flex items-center text-xs font-semibold text-[#042C53]">
                     View numbers <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                   </span>
                 </button>
@@ -78,12 +82,12 @@ const PipelineSummary = ({ applications = [], to }) => {
         <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
           {openPhase && (
             <>
-              <DialogHeader className="px-7 pt-6 pb-5 border-b border-[#E5E7EB] space-y-1">
+              <DialogHeader className="px-5 sm:px-7 pt-6 pb-5 border-b border-[#E5E7EB] space-y-1">
                 <DialogTitle className="font-['Outfit'] text-lg">{openPhase.title}</DialogTitle>
                 <DialogDescription>{openPhase.hint}</DialogDescription>
               </DialogHeader>
 
-              <div className="px-7 py-6">
+              <div className="px-5 sm:px-7 py-6">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-semibold text-[#111827] tabular-nums">{openTotal}</span>
                   <span className="text-sm text-[#6B7280]">

@@ -67,7 +67,9 @@ const AgentActivationStatus = () => {
   };
 
   const progress = getContractProgress(user);
-  const active = !!user?.isActivated;
+  const active = !!(user?.isActivated || user?.contractStatus === 'active');
+  // If already active, credentials and contract are managed under Settings
+  if (active) return null;
   const status = user?.contractStatus || 'not_issued';
   const contractFiles = (user?.contractDocuments || []).filter((f) => f.kind === 'issued');
   const latestContract = contractFiles[contractFiles.length - 1];

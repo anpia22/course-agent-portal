@@ -570,7 +570,7 @@ const StudentDetailsPage = () => {
   const studentNotes = known(getStudentFieldValue('notes', 'notes'));
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-8" data-testid="student-details-page">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6 sm:space-y-8" data-testid="student-details-page">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start gap-4">
@@ -584,7 +584,7 @@ const StudentDetailsPage = () => {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">
               {getStudentFieldValue('name', 'name')}
             </h1>
             <div className="flex items-center flex-wrap gap-2.5 mt-2">
@@ -642,7 +642,7 @@ const StudentDetailsPage = () => {
                 Student Summary
               </CardTitle>
             </CardHeader>
-            <dl className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+            <dl className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-4 sm:gap-y-5">
               {keyFacts.map(([label, val]) => (
                 <div key={label} className="min-w-0">
                   <dt className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">{label}</dt>
@@ -679,7 +679,7 @@ const StudentDetailsPage = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-xs">
+                  <table className="w-full border-collapse text-left text-xs min-w-[600px]">
                     <thead>
                       <tr className="border-b border-[#E5E7EB] text-[10px] font-bold text-[#6B7280] uppercase tracking-wider bg-[#F9FAFB]">
                         <th className="py-3 px-3">App Number</th>

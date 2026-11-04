@@ -125,10 +125,10 @@ const TeamPage = () => {
   const grouped = ROLE_ORDER.map((key) => ({ key, members: staff.filter((s) => roleKey(s) === key) }));
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight flex items-center gap-2">
             <UsersRound size={22} className="text-[#042C53]" /> Team
           </h1>
           <p className="text-sm text-gray-500 mt-1">Your staff and what each person can do. Only the super admin sees this page.</p>
@@ -151,7 +151,8 @@ const TeamPage = () => {
         {loading ? (
           <p className="p-6 text-sm text-gray-500">Loading...</p>
         ) : (
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[650px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -186,6 +187,7 @@ const TeamPage = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </Card>
 

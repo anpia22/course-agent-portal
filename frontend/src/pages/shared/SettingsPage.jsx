@@ -41,6 +41,7 @@ import {
   Sparkles,
   HelpCircle,
   Info,
+  Award,
   FileSignature,
   FileQuestion,
   Send,
@@ -55,6 +56,7 @@ import { COUNTRIES } from '../../utils/countries';
 import { applicationStateFromUser } from '../../utils/agentApplication';
 import { ticketAPI, formatApiError } from '../../utils/api';
 import AgencyLogo from '../../components/common/AgencyLogo';
+import AgentAgreementSettings from '../../components/agent/AgentAgreementSettings';
 
 // Format readable dates
 const formatDate = (dateStr) => {
@@ -546,7 +548,8 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
     if (isAgent) {
       list.push(
         { id: 'agency', icon: Building2, label: 'Agency Profile', shortLabel: 'Agency', desc: isPartnerLocked ? 'Locked for legal compliance' : 'Company particulars & address' },
-        { id: 'payouts', icon: CreditCard, label: 'Bank & Payouts', shortLabel: 'Payouts', desc: isPartnerLocked ? 'Locked for payout security' : 'Commission remittance details' }
+        { id: 'payouts', icon: CreditCard, label: 'Bank & Payouts', shortLabel: 'Payouts', desc: isPartnerLocked ? 'Locked for payout security' : 'Commission remittance details' },
+        { id: 'agreement', icon: Award, label: 'Certificate & Contract', shortLabel: 'Certificate', desc: 'Official E-Certificate & legal agreement' }
       );
     }
     list.push(
@@ -672,10 +675,20 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
                   <span className="font-medium text-slate-800">{user?.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Active now'}</span>
                 </div>
                 {isAgent && user?.eCertificateNumber && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Certificate #</span>
-                    <span className="font-mono font-semibold text-[#042C53]">{user.eCertificateNumber}</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('agreement')}
+                    className="w-full flex items-center justify-between p-2 rounded-xl bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 text-xs transition-colors cursor-pointer group"
+                    title="View E-Certificate & Agreement"
+                  >
+                    <span className="text-amber-800 font-semibold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Certificate #
+                    </span>
+                    <span className="font-mono font-bold text-[#042C53] group-hover:underline flex items-center gap-1">
+                      {user.eCertificateNumber}
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#042C53]" />
+                    </span>
+                  </button>
                 )}
                 <div className="pt-1 flex items-center justify-between">
                   <span className="text-slate-400">Support</span>
@@ -795,12 +808,20 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
                   <span className="font-medium text-slate-800">{user?.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Active now'}</span>
                 </div>
                 {isAgent && user?.eCertificateNumber && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('agreement')}
+                    className="w-full flex items-center justify-between p-2 rounded-xl bg-amber-50/80 hover:bg-amber-100/80 border border-amber-200/80 text-xs transition-colors cursor-pointer group"
+                    title="View E-Certificate & Agreement"
+                  >
+                    <span className="text-amber-800 font-semibold flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Certificate #
                     </span>
-                    <span className="font-mono font-semibold text-[#042C53]">{user.eCertificateNumber}</span>
-                  </div>
+                    <span className="font-mono font-bold text-[#042C53] group-hover:underline flex items-center gap-1">
+                      {user.eCertificateNumber}
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#042C53]" />
+                    </span>
+                  </button>
                 )}
               </div>
             </div>
@@ -1071,7 +1092,7 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
 
                 <form onSubmit={handleAgencyUpdate} className="p-4 sm:p-8 space-y-5 sm:space-y-6">
                   {/* Compliance Notice Banner when locked */}
-                  {isPartnerLocked && (
+                  {/* {isPartnerLocked && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 flex items-start gap-3">
                       <Lock className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
                       <div className="space-y-1">
@@ -1083,7 +1104,7 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
                         </p>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Agency Legal Overview */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1273,7 +1294,7 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
 
                 <form onSubmit={handleBankUpdate} className="p-4 sm:p-8 space-y-5 sm:space-y-6">
                   {/* Security Lock Banner when locked */}
-                  {isPartnerLocked ? (
+                  {/* {isPartnerLocked ? (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 text-xs text-emerald-950 flex items-start gap-3">
                       <ShieldCheck className="w-5 h-5 text-emerald-700 mt-0.5 shrink-0" />
                       <div className="space-y-1">
@@ -1301,7 +1322,7 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
                         </p>
                       </div>
                     </div>
-                  )}
+                  )} */}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {/* Beneficiary Name */}
@@ -1454,6 +1475,13 @@ Please verify supporting corporate documents (bank statement header, SSM certifi
                     )}
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* ────────────────── 3b. CERTIFICATE & CONTRACT TAB ────────────────── */}
+            {activeTab === 'agreement' && isAgent && (
+              <div className="animate-in fade-in duration-300">
+                <AgentAgreementSettings />
               </div>
             )}
 

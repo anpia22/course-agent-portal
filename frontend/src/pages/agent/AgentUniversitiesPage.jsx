@@ -128,7 +128,7 @@ const AgentUniversitiesPage = () => {
   const hasFilters = Boolean(searchQuery || cityFilter);
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="agent-universities-page">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="agent-universities-page">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -231,7 +231,7 @@ const AgentUniversitiesPage = () => {
         </Card>
       ) : view === 'list' ? (
         <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-sm overflow-x-auto">
-          <Table>
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                 <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider whitespace-nowrap">University</TableHead>

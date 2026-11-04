@@ -224,7 +224,7 @@ const CoursesPage = () => {
   const columnCount = canManage ? 6 : 5;
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="admin-courses-page">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="admin-courses-page">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -398,7 +398,7 @@ const CoursesPage = () => {
       {/* Courses Table */}
       <Card className="border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[750px]">
             <TableHeader className="bg-gray-50/70 border-b border-gray-100">
               <TableRow>
                 <TableHead className="text-xs font-bold text-gray-700 uppercase tracking-wider py-3.5">Course Name</TableHead>

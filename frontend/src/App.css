@@ -79,44 +79,66 @@
     overflow: hidden;
 }
 
-/* Responsive font adjustments */
-@media (max-width: 640px) {
-    html {
-        font-size: 14px;
+/*
+ * Mobile / tablet foundations.
+ * Note: the root font size is deliberately NOT reduced on phones. Shrinking `html` made every
+ * page look like a scaled-down desktop; instead each component adapts its own layout.
+ */
+/* Clip sideways overflow at the root only (keeps the sticky top bar working) */
+html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Tiny uppercase labels (10–11px) are unreadable on phones: lift them to a legible minimum. */
+@media (max-width: 639px) {
+    .text-\[10px\] {
+        font-size: 11px;
+    }
+    .text-\[11px\] {
+        font-size: 12px;
     }
 }
 
+/* Horizontally scrollable chip / segmented-control rows on small screens */
+.scroll-row {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.scroll-row::-webkit-scrollbar {
+    display: none;
+}
+.scroll-row > * {
+    flex-shrink: 0;
+}
 
 /* KPI / stat card rows: two per row on phones, so they don't stack into a long scroll */
 @media (max-width: 639px) {
     .stat-grid > * {
         min-width: 0;
     }
-    .stat-grid > [class*="p-4"],
-    .stat-grid [class*="p-4"],
-    .stat-grid [class*="p-5"],
-    .stat-grid [class*="p-6"] {
-        padding: 0.75rem;
-    }
-    .stat-grid [class*="text-2xl"],
-    .stat-grid [class*="text-3xl"] {
-        font-size: 1.25rem;
-        line-height: 1.75rem;
-    }
-    .stat-grid [class*="w-10"][class*="h-10"],
-    .stat-grid [class*="w-11"][class*="h-11"],
-    .stat-grid [class*="w-12"][class*="h-12"] {
-        width: 2rem;
-        height: 2rem;
-        flex-shrink: 0;
-    }
-    .stat-grid [class*="w-10"][class*="h-10"] svg,
-    .stat-grid [class*="w-11"][class*="h-11"] svg,
-    .stat-grid [class*="w-12"][class*="h-12"] svg {
-        width: 1rem;
-        height: 1rem;
-    }
     .stat-grid p {
         overflow-wrap: anywhere;
+    }
+    /* Half-width cards: trim the roomiest paddings and the very largest numbers only */
+    .stat-grid [class*="p-5"],
+    .stat-grid [class*="p-6"] {
+        padding: 1rem;
+    }
+    .stat-grid [class*="text-3xl"] {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+    .stat-grid [class*="text-2xl"] {
+        font-size: 1.375rem;
+        line-height: 1.875rem;
+        overflow-wrap: anywhere;
+    }
+    /* An odd last card fills the row instead of leaving a gap */
+    .stat-grid > *:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
     }
 }

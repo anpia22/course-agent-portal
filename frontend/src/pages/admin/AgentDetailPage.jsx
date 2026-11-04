@@ -246,7 +246,7 @@ const AgentDetailPage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen font-['Inter']">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen font-['Inter']">
       <button
         onClick={() => navigate('/admin/agents')}
         className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#042C53] hover:underline mb-4"
@@ -332,7 +332,7 @@ const AgentDetailPage = () => {
       )}
 
       {/* ── Navigation Tabs: Students Inside Agents (Vijay requirement) ── */}
-      <div className="flex items-center gap-1 border-b border-[#D1D5DB] mb-6 overflow-x-auto" role="tablist">
+      <div className="scroll-row items-center gap-1 border-b border-[#D1D5DB] mb-6" role="tablist">
         {[
           { key: 'students', label: 'Students', Icon: GraduationCap, count: agentStudents.length },
           { key: 'invoices', label: 'Invoices', Icon: FileText, count: agentInvoices.length },
@@ -372,7 +372,7 @@ const AgentDetailPage = () => {
       {activeTab === 'students' && (
         <div className="space-y-4">
           {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="stat-grid grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-white rounded-xl p-4 border border-[#E5E7EB] shadow-sm">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Registered</p>
               <p className="text-2xl font-bold text-slate-900 mt-1 font-['Outfit']">{agentStudents.length}</p>
@@ -440,7 +440,7 @@ const AgentDetailPage = () => {
           {/* Students Table */}
           <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                     <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Student Name</TableHead>
@@ -559,7 +559,7 @@ const AgentDetailPage = () => {
           {/* Invoices Table */}
           <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                     <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Invoice #</TableHead>

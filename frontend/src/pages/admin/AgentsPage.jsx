@@ -446,11 +446,11 @@ const AgentsPage = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 bg-[#F9FAFB] min-h-screen font-['Inter']" data-testid="agents-page">
+    <div className="space-y-5 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen font-['Inter']" data-testid="agents-page">
       {/* Top Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Agent Management</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Agent Management</h1>
           <p className="text-sm text-[#6B7280] mt-0.5">
             {agents.length} agents · {agents.filter(a => !a.isVerified && a.verificationStatus !== 'rejected').length} pending verification
           </p>
@@ -507,7 +507,7 @@ const AgentsPage = () => {
             {pendingVerificationAgents.map((agent) => {
               const styles = getAvatarStyles(agent.name);
               return (
-                <div key={agent.id} className="flex-shrink-0 w-full md:w-[calc((100%-32px)/3)] min-w-[320px] p-4 rounded-xl border border-[#E5E7EB] bg-white group hover:border-[#042C53]/20 transition-all snap-start">
+                <div key={agent.id} className="flex-shrink-0 w-full md:w-[calc((100%-32px)/3)] min-w-[280px] sm:min-w-[320px] p-4 rounded-xl border border-[#E5E7EB] bg-white group hover:border-[#042C53]/20 transition-all snap-start">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <AgencyLogo agent={agent} size="sm" />
                     <div className="flex-1">
@@ -608,7 +608,7 @@ const AgentsPage = () => {
         {/* Row 2: Filter Selectors (Status, Country, Account Manager, Region, Clear) */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
           {/* Status Tabs */}
-          <div className="flex bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg p-0.5 gap-0.5 overflow-x-auto">
+          <div className="scroll-row bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg p-0.5 gap-0.5">
             {['all', 'approved', 'pending', 'rejected'].map((f) => (
               <button
                 key={f}
@@ -771,7 +771,7 @@ const AgentsPage = () => {
             <h3 className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">All agents</h3>
           </div>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[850px]">
               <TableHeader>
                 <TableRow className="bg-[#F9FAFB] hover:bg-[#F9FAFB] border-b border-[#E5E7EB]">
                   <TableHead className="text-[10px] font-semibold text-[#6B7280] uppercase py-3 pl-6 w-[22%]">Agent</TableHead>

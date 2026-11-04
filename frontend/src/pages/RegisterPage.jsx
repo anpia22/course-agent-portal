@@ -368,7 +368,7 @@ const RegisterPage = () => {
   const primaryBtn = 'bg-[#0C447C] hover:bg-[#083058] text-white px-6';
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-10 px-4 sm:px-6 font-['Inter']">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-6 sm:py-10 px-4 sm:px-6 font-['Inter']">
       <div className="w-full max-w-xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -404,7 +404,7 @@ const RegisterPage = () => {
 
         {/* STEP 0: CREATE THE LOGIN */}
         {currentStep === 0 && (
-          <form onSubmit={handleCreateLogin} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
+          <form onSubmit={handleCreateLogin} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-sm space-y-8">
             <section className="space-y-5">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Create your login</h2>
@@ -506,7 +506,7 @@ const RegisterPage = () => {
 
         {/* STEP 1: AGENCY */}
         {currentStep === 1 && (
-          <form onSubmit={handleNextStep1} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <form onSubmit={handleNextStep1} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6">
             <div>
               <label className={labelClass}>Applying as</label>
               <div className="grid grid-cols-2 gap-3">
@@ -633,7 +633,7 @@ const RegisterPage = () => {
 
         {/* STEP 2: CONTACT */}
         {currentStep === 2 && (
-          <form onSubmit={handleNextStep2} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
+          <form onSubmit={handleNextStep2} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-sm space-y-8">
             <section className="space-y-5">
               <h2 className="text-sm font-semibold text-slate-900">Who should we contact?</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -703,7 +703,7 @@ const RegisterPage = () => {
 
         {/* STEP 3: BANK AND DECLARATION */}
         {currentStep === 3 && (
-          <form onSubmit={handleSubmitStep3} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
+          <form onSubmit={handleSubmitStep3} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-sm space-y-8">
             <section className="space-y-5">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">Bank details</h2>
@@ -859,7 +859,7 @@ const RegisterPage = () => {
 
         {/* STEP 4: DOCUMENTS */}
         {currentStep === 4 && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-8 shadow-sm space-y-8">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">Upload one verification document</h2>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">

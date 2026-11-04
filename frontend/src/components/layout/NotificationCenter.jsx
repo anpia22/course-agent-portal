@@ -111,7 +111,7 @@ const NotificationCenter = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[320px] sm:w-[380px] p-0 overflow-hidden">
+      <DropdownMenuContent align="end" className="w-[calc(100vw-1.5rem)] max-w-[380px] sm:w-[380px] p-0 overflow-hidden">
         <div className="flex items-center justify-between p-4 bg-muted/30">
           <DropdownMenuLabel className="p-0 font-['Outfit'] text-base">
             Notifications

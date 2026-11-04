@@ -76,10 +76,10 @@ const DashboardLayout = ({ requiredRole }) => {
           sidebarCollapsed={sidebarCollapsed}
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
-        <main className="flex-1 overflow-x-hidden">
-          <div className="max-w-[1400px] mx-auto w-full">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
+          <div className="max-w-[1400px] mx-auto w-full min-w-0">
             {/* Topbar search is hidden below md, so offer it here on phones */}
-            <div className="md:hidden px-4 pt-4">
+            <div className="md:hidden px-4 pt-3">
               <div className="[&_input]:h-10"><GlobalSearch /></div>
             </div>
             {dataLoading && !initialized ? (

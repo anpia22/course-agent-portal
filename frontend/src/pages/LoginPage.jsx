@@ -119,7 +119,7 @@ const LoginPage = () => {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="flex-1 bg-background flex items-center justify-center p-8">
+      <div className="flex-1 bg-background flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-semibold text-foreground font-['Outfit'] mb-2">Welcome back</h2>

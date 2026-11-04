@@ -173,7 +173,7 @@ const NewsPage = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 min-h-screen bg-[#F9FAFB] font-['Inter']" data-testid="news-page">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F9FAFB] font-['Inter']" data-testid="news-page">
       <div className="max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -191,7 +191,7 @@ const NewsPage = () => {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-        <div className="flex gap-1.5">
+        <div className="scroll-row sm:flex gap-1.5">
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -234,7 +234,7 @@ const NewsPage = () => {
             return (
               <article
                 key={item.id}
-                className="bg-white border border-gray-200 rounded-xl p-5 flex gap-4"
+                className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 flex gap-3 sm:gap-4"
               >
                 <div className="w-10 h-10 rounded-full bg-[#042C53]/5 flex items-center justify-center shrink-0">
                   <Icon className="w-5 h-5 text-[#042C53]" />

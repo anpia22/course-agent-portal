@@ -145,10 +145,10 @@ const AdminSupportPage = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 bg-[#F9FAFB] min-h-screen font-['Inter']">
+    <div className="space-y-5 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen font-['Inter']">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Support Management</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Support Management</h1>
           <p className="text-sm text-[#6B7280] mt-0.5 font-medium">Respond to agent inquiries and manage help centre content.</p>
         </div>
         {/* <div className="flex gap-3">
@@ -175,7 +175,7 @@ const AdminSupportPage = () => {
                   <stat.icon className={cn("w-3.5 h-3.5", stat.color)} />
                 </div>
               </div>
-              <h3 className="text-2xl font-semibold text-[#111827] mt-1">{stat.value}</h3>
+              <h3 className="text-xl sm:text-2xl font-semibold text-[#111827] mt-1">{stat.value}</h3>
               <p className="text-[10px] font-medium text-[#6B7280] mt-1 uppercase tracking-wider">{stat.sub}</p>
             </CardContent>
           </Card>

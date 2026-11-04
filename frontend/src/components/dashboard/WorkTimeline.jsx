@@ -33,7 +33,7 @@ export const TodayPanel = ({ tiles, actions, events }) => {
   return (
     <div className="mb-8" data-testid="today-panel">
       <SectionLabel>Today's work</SectionLabel>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-4">
+      <div className="stat-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4">
         {tiles.map((t) => {
           const Icon = t.icon;
           const body = (
@@ -52,9 +52,9 @@ export const TodayPanel = ({ tiles, actions, events }) => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">Needs your action</h3>
             {actionTotal > 0 && (
@@ -66,13 +66,13 @@ export const TodayPanel = ({ tiles, actions, events }) => {
               {actions.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link key={item.label} to={item.link} className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50/50 transition-colors group">
+                  <Link key={item.label} to={item.link} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3.5 hover:bg-slate-50/50 transition-colors group">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.iconBg }}>
                       <Icon className="w-4 h-4" style={{ color: item.iconColor }} />
                     </div>
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <div className="flex-1 min-w-0 flex items-baseline gap-2">
                       <span className="text-lg font-bold text-[#111827] font-['Outfit']">{item.count}</span>
-                      <span className="text-sm text-slate-600 font-medium">{item.label}</span>
+                      <span className="text-sm text-slate-600 font-medium leading-snug">{item.label}</span>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-[#042C53] transition-colors shrink-0" />
                   </Link>
@@ -88,14 +88,14 @@ export const TodayPanel = ({ tiles, actions, events }) => {
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center justify-between gap-2 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
             <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">Happened today</h3>
             <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
               {todayEvents.length} update{todayEvents.length === 1 ? '' : 's'}
             </span>
           </div>
           {todayEvents.length > 0 ? (
-            <div className="divide-y divide-slate-50 max-h-[320px] overflow-y-auto">
+            <div className="divide-y divide-slate-50 max-h-[360px] lg:max-h-[320px] overflow-y-auto">
               {todayEvents.slice(0, todayLimit).map((e) => <EventRow key={e.id} event={e} />)}
               {todayEvents.length > todayLimit && (
                 <button
@@ -196,17 +196,17 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
       </ChartCard>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center lg:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
             <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">Timeline</h3>
-            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+            <div className="scroll-row items-center gap-1 bg-slate-100 p-1 rounded-lg max-w-full">
               <Calendar className="w-3.5 h-3.5 text-slate-500 ml-1.5 mr-0.5" />
               {DATE_PRESETS.map((dp) => (
                 <button
                   key={dp.key}
                   type="button"
                   onClick={() => { setDateRange(dp.key); setLimit(25); }}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all ${
+                  className={`text-[11px] font-semibold px-2.5 py-1.5 sm:py-1 rounded-md whitespace-nowrap transition-all ${
                     dateRange === dp.key
                       ? 'bg-white text-[#042C53] shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
@@ -217,12 +217,12 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="scroll-row sm:flex-wrap gap-1.5 -mx-4 px-4 sm:mx-0 sm:px-0">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => { setFilter(f.key); setLimit(25); }}
-                className={`text-xs font-semibold px-3 py-1 rounded-full border transition-colors ${
+                className={`text-xs font-semibold px-3 py-1.5 sm:py-1 rounded-full border whitespace-nowrap transition-colors ${
                   filter === f.key
                     ? 'bg-[#042C53] text-white border-[#042C53]'
                     : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
@@ -238,7 +238,7 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
           <div>
             {groups.map((g) => (
               <div key={g.label}>
-                <div className="px-6 py-2 bg-slate-50 border-y border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <div className="px-4 sm:px-6 py-2 bg-slate-50 border-y border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   {g.label} <span className="text-slate-400 font-medium normal-case">· {g.items.length}</span>
                 </div>
                 <div className="divide-y divide-slate-50">
@@ -277,7 +277,7 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
 const EventRow = ({ event: e }) => {
   const Icon = e.icon;
   const row = (
-    <div className="flex items-start gap-3.5 px-6 py-3 hover:bg-slate-50/50">
+    <div className="flex items-start gap-3 sm:gap-3.5 px-4 sm:px-6 py-3 hover:bg-slate-50/50">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: e.iconBg }}>
         <Icon className="w-3.5 h-3.5" style={{ color: e.iconColor }} />
       </div>
@@ -289,7 +289,7 @@ const EventRow = ({ event: e }) => {
         </p>
         {e.by && <p className="text-[11px] text-slate-400 mt-0.5 truncate">by {e.by}</p>}
       </div>
-      <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap mt-1">{timeLabel(e.time)}</span>
+      <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap mt-1 shrink-0">{timeLabel(e.time)}</span>
     </div>
   );
   return e.to ? <Link to={e.to} className="block">{row}</Link> : row;

@@ -254,7 +254,7 @@ const RolesGuidePage = () => {
   };
 
   return (
-    <div className="mx-auto flex flex-col gap-12 py-8 md:py-10 px-4" style={{ maxWidth: 1120 }}>
+    <div className="mx-auto flex flex-col gap-12 py-5 sm:py-8 md:py-10 px-3 sm:px-6" style={{ maxWidth: 1120 }}>
       <header className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-[13px] text-slate-600">Help / Roles and Responsibilities</div>
@@ -277,7 +277,7 @@ const RolesGuidePage = () => {
             </button>
           </div>
         </div>
-        <h1 className="m-0 text-[32px] font-bold leading-[1.2] tracking-[-0.02em] text-slate-900">Roles and Responsibilities</h1>
+        <h1 className="m-0 text-2xl sm:text-[32px] font-bold leading-[1.2] tracking-[-0.02em] text-slate-900">Roles and Responsibilities</h1>
         <p className="m-0 max-w-[680px] text-base leading-normal text-slate-600">
           Who does what in Q-Study, and in what order. Pick a role to see only their work, or copy the text above to make amendments.
         </p>
@@ -301,7 +301,7 @@ const RolesGuidePage = () => {
       </header>
 
       {/* First Thing: How We Give to Agents — Registration Guide & QR Code */}
-      <section aria-labelledby="agent-reg-guide" className="flex flex-col gap-5 rounded-xl border border-[#B5D4F4] bg-[#F8FBFF] p-6 shadow-sm">
+      <section aria-labelledby="agent-reg-guide" className="flex flex-col gap-5 rounded-xl border border-[#B5D4F4] bg-[#F8FBFF] p-4 sm:p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#042C53] flex items-center gap-1.5">

@@ -204,8 +204,8 @@ const InvoicesPage = () => {
   ];
 
   const InvoiceList = ({ list }) => (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden shadow-sm">
-      <Table>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
+      <Table className="min-w-[650px]">
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Invoice</TableHead>
@@ -279,7 +279,7 @@ const InvoicesPage = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -295,7 +295,7 @@ const InvoicesPage = () => {
       </div>
 
       {/* Summary: five invoice stages in order, each opens the matching list */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="stat-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {summaryCards.map((card) => (
           <button
             key={card.filter}
@@ -321,7 +321,7 @@ const InvoicesPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-2" role="tablist">
+        <div className="scroll-row sm:flex-wrap gap-1.5 sm:gap-2" role="tablist">
           {FILTERS.map((f) => {
             const selected = filter === f.key;
             return (

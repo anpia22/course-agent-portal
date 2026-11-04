@@ -111,7 +111,7 @@ const CommissionsPage = () => {
   };
 
   return (
-    <div className="p-5 md:p-8 max-w-6xl space-y-6" data-testid="commissions-page">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl space-y-5 sm:space-y-6" data-testid="commissions-page">
       <div>
         <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Commission</h1>
         <p className="text-sm text-[#6B7280] mt-1.5">
@@ -132,8 +132,8 @@ const CommissionsPage = () => {
       </div>
 
       <Card className="border-[#E5E7EB] shadow-none bg-white overflow-hidden">
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow className="bg-[#F9FAFB] hover:bg-[#F9FAFB]">
                 <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">University</TableHead>

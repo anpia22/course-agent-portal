@@ -74,11 +74,11 @@ export const prettyStatus = (s) =>
 /** White card with a title, a one-line explanation, and the chart body */
 export const ChartCard = ({ title, hint, height = 240, className = '', children }) => (
   <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden ${className}`}>
-    <div className="px-6 py-4 border-b border-slate-100">
+    <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100">
       <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">{title}</h3>
       {hint && <p className="text-[11px] text-slate-500 font-medium mt-0.5">{hint}</p>}
     </div>
-    <div className="p-4" style={{ height }}>{children}</div>
+    <div className="p-2 sm:p-4" style={{ height }}>{children}</div>
   </div>
 );
 

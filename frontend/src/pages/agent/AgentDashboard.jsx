@@ -301,18 +301,18 @@ const AgentDashboard = () => {
   }, [news]);
 
   return (
-    <div className="space-y-6 p-4 md:p-8 bg-[#F9FAFB] min-h-screen" data-testid="agent-dashboard">
+    <div className="space-y-5 sm:space-y-6 p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen" data-testid="agent-dashboard">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <AgencyLogo agent={user} size="lg" />
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+          <AgencyLogo agent={user} size="lg" className="w-12 h-12 text-base rounded-xl sm:w-16 sm:h-16 sm:text-xl sm:rounded-2xl" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <h1 className="w-full sm:w-auto text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">
                 {getGreeting()}, {user?.name?.split(' ')[0] || 'Partner'}
               </h1>
               {user?.agencyName && (
-                <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
+                <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md max-w-full truncate">
                   {user.agencyName}
                 </span>
               )}
@@ -322,7 +322,7 @@ const AgentDashboard = () => {
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-500 mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:mt-1 font-medium">
               Here's what's happening with your students and applications
             </p>
           </div>
@@ -331,8 +331,8 @@ const AgentDashboard = () => {
 
       <div className="w-full h-px bg-gray-200" />
 
-      {/* Compliance Warning */}
-      <ComplianceStatus />
+      {/* Onboarding / Verification Notice (hidden once account is active) */}
+      {!user?.isActivated && user?.contractStatus !== 'active' && <ComplianceStatus />}
 
       {/* Visa progress for your students */}
       <PipelineSummary applications={myApplications} to="/agent/students" />
@@ -387,7 +387,7 @@ const AgentDashboard = () => {
                 <Link
                   key={item.id || item._id}
                   to="/agent/news"
-                  className="flex items-start justify-between gap-4 p-4 hover:bg-slate-50 transition-colors"
+                  className="flex items-start justify-between gap-3 sm:gap-4 p-4 hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] text-[#042C53] flex items-center justify-center shrink-0 mt-0.5">

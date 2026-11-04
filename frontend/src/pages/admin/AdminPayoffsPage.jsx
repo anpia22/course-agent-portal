@@ -226,8 +226,8 @@ const AdminPayoffsPage = () => {
   );
 
   const PayoffTable = ({ list }) => (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-hidden shadow-sm">
-      <Table>
+    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
+      <Table className="min-w-[700px]">
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
             <TableHead className="text-[10px] text-[#6B7280] font-bold px-6 py-3 text-left uppercase tracking-wider whitespace-nowrap">Payoff #</TableHead>
@@ -371,7 +371,7 @@ const AdminPayoffsPage = () => {
   );
 
   return (
-    <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

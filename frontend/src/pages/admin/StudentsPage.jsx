@@ -492,16 +492,16 @@ const StudentsPage = () => {
   }
 
   return (
-    <div className="p-6 font-sans bg-[#F9FAFB] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 font-sans bg-[#F9FAFB] min-h-screen">
       {/* Top Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Student Management</h1>
-          <p className="text-sm text-[#6B7280] mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Student Management</h1>
+          <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5">
             {baseFilteredStudents.length.toLocaleString()} students across all verification states
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             className="inline-flex items-center text-xs font-semibold h-10 px-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all hover:text-[#042C53]"
             onClick={() => toast.info('Export started...')}
@@ -520,11 +520,11 @@ const StudentsPage = () => {
       </div>
 
       {/* Tabs: All Students vs Verification Queue */}
-      <div className="flex border-b border-slate-200 mb-6 gap-6">
+      <div className="flex border-b border-slate-200 mb-6 gap-4 sm:gap-6 scroll-row">
         <button
           onClick={() => setActiveTab('all')}
           className={cn(
-            "pb-3 text-sm font-bold transition-all relative",
+            "pb-3 text-sm font-bold transition-all relative whitespace-nowrap shrink-0",
             activeTab === 'all'
               ? "text-[#042C53] border-b-2 border-[#042C53]"
               : "text-[#6B7280] hover:text-[#111827]"
@@ -538,7 +538,7 @@ const StudentsPage = () => {
         <button
           onClick={() => setActiveTab('queue')}
           className={cn(
-            "pb-3 text-sm font-bold transition-all relative flex items-center gap-2",
+            "pb-3 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap shrink-0",
             activeTab === 'queue'
               ? "text-[#042C53] border-b-2 border-[#042C53]"
               : "text-[#6B7280] hover:text-[#111827]"
@@ -555,11 +555,11 @@ const StudentsPage = () => {
       {activeTab === 'all' ? (
         <>
           {/* Single Row of Pipeline Cards (All Students -> Application -> Offer Letter Issued -> Fees Paid -> Visa in Process -> Visa 100%) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div className="stat-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
             <div
               onClick={() => { setStageFilter('all'); setSubStageFilter('all'); }}
               className={cn(
-                'cursor-pointer p-4 rounded-xl border transition-all bg-white',
+                'cursor-pointer p-3 sm:p-4 rounded-xl border transition-all bg-white',
                 stageFilter === 'all' && subStageFilter === 'all'
                   ? 'border-[#378ADD] shadow-sm ring-1 ring-[#378ADD]/20'
                   : 'border-[#E5E7EB] hover:border-slate-300'
@@ -569,7 +569,7 @@ const StudentsPage = () => {
                 <span className="w-2 h-2 rounded-full bg-slate-400" />
                 <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">All Students</span>
               </div>
-              <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{funnelCounts.all}</div>
+              <div className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit']">{funnelCounts.all}</div>
               <div className="text-xs text-[#6B7280] mt-1">All registrations</div>
             </div>
             {STUDENT_FUNNEL.map(group => (
@@ -652,50 +652,52 @@ const StudentsPage = () => {
           </Dialog>
 
           {/* Single Unified Search & Filter Bar */}
-          <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <div className="relative flex-1 min-w-[260px]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 mb-5">
+            <div className="relative flex-1 min-w-0">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
               <input
                 type="text"
                 placeholder="Search by student name, email, or phone…"
-                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-[#E5E7EB] outline-none focus:border-[#042C53] focus:ring-2 focus:ring-[#042C53]/5 transition-all bg-white"
+                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-[#E5E7EB] outline-none focus:border-[#042C53] focus:ring-2 focus:ring-[#042C53]/5 transition-all bg-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            {user?.staffRole !== 'account_manager' && accountManagers.length > 0 && (
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+              {user?.staffRole !== 'account_manager' && accountManagers.length > 0 && (
+                <select
+                  className={cn(
+                    "text-xs font-semibold px-3 py-2 rounded-xl border bg-white outline-none w-full sm:w-auto",
+                    amFilter !== 'all' ? "border-[#534AB7] text-[#534AB7] bg-[#EEEDFE]/30" : "border-[#E5E7EB]"
+                  )}
+                  value={amFilter}
+                  onChange={(e) => { setAmFilter(e.target.value); setAgentFilter('all'); }}
+                  title="Filter by Account Manager"
+                >
+                  <option value="all">All Account Managers</option>
+                  {accountManagers.map(am => (
+                    <option key={am.id} value={am.id}>AM: {am.name}</option>
+                  ))}
+                </select>
+              )}
+
               <select
                 className={cn(
-                  "text-xs font-semibold px-3 py-2.5 rounded-xl border bg-white outline-none",
-                  amFilter !== 'all' ? "border-[#534AB7] text-[#534AB7] bg-[#EEEDFE]/30" : "border-[#E5E7EB]"
+                  "text-xs font-semibold px-3 py-2 rounded-xl border bg-white outline-none w-full sm:w-auto",
+                  agentFilter !== 'all' ? "border-[#042C53] text-[#042C53]" : "border-[#E5E7EB]"
                 )}
-                value={amFilter}
-                onChange={(e) => { setAmFilter(e.target.value); setAgentFilter('all'); }}
-                title="Filter by Account Manager"
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+                title="Select agent to filter students"
               >
-                <option value="all">All Account Managers</option>
-                {accountManagers.map(am => (
-                  <option key={am.id} value={am.id}>AM: {am.name}</option>
+                <option value="all">{ user?.staffRole === 'account_manager' ? 'My Assigned Agents (All)' : 'All Agents' }</option>
+                {user?.staffRole !== 'account_manager' && <option value="direct">Admin / Direct</option>}
+                {agentOptions.map(a => (
+                  <option key={a.id} value={a.id}>{a.label}{a.sub ? ` (${a.sub})` : ''} · {a.count}</option>
                 ))}
               </select>
-            )}
-
-            <select
-              className={cn(
-                "text-xs font-semibold px-3 py-2.5 rounded-xl border bg-white outline-none",
-                agentFilter !== 'all' ? "border-[#042C53] text-[#042C53]" : "border-[#E5E7EB]"
-              )}
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-              title="Select agent to filter students"
-            >
-              <option value="all">{ user?.staffRole === 'account_manager' ? 'My Assigned Agents (All)' : 'All Agents' }</option>
-              {user?.staffRole !== 'account_manager' && <option value="direct">Admin / Direct</option>}
-              {agentOptions.map(a => (
-                <option key={a.id} value={a.id}>{a.label}{a.sub ? ` (${a.sub})` : ''} · {a.count}</option>
-              ))}
-            </select>
+            </div>
 
             {selectedAgentObj && (
               <select
@@ -776,7 +778,7 @@ const StudentsPage = () => {
           {/* Table / Grid View */}
           {displayMode === 'table' ? (
             <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm mb-6">
-              <table className="w-full border-collapse text-sm">
+              <table className="w-full border-collapse text-sm min-w-[760px]">
                 <thead>
                   <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                     <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Student</th>
@@ -1023,7 +1025,7 @@ const StudentsPage = () => {
 
           {/* Queue Table */}
           <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
-            <table className="w-full border-collapse text-sm text-left">
+            <table className="w-full border-collapse text-sm text-left min-w-[760px]">
               <thead>
                 <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                   <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 uppercase tracking-wider w-[22%]">Student</th>
@@ -1169,15 +1171,15 @@ const StudentsPage = () => {
       {selectedStudent && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[1000] flex justify-end" onClick={() => setSelectedStudentId(null)}>
           <div
-            className="w-full max-w-[500px] bg-white h-full shadow-[-4px_0_15px_rgba(0,0,0,0.1)] p-6 overflow-y-auto animate-in slide-in-from-right duration-300"
+            className="w-full max-w-[500px] bg-white h-full shadow-[-4px_0_15px_rgba(0,0,0,0.1)] p-4 sm:p-6 overflow-y-auto animate-in slide-in-from-right duration-300"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-start gap-4 mb-6 pb-5 border-b border-[#F3F4F6]">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold bg-[#E6F1FB] text-[#0C447C]">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-base sm:text-lg font-bold bg-[#E6F1FB] text-[#0C447C] shrink-0">
                 {getInitials(getStudentName(selectedStudent))}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xl font-bold text-[#111827] font-['Outfit'] truncate">{getStudentName(selectedStudent)}</div>
+                <div className="text-lg sm:text-xl font-bold text-[#111827] font-['Outfit'] truncate">{getStudentName(selectedStudent)}</div>
                 <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-2 items-center">
                   <span className="flex items-center gap-1"><Mail size={12} /> {getStudentValue(selectedStudent, 'email', 'Email Address')}</span>
                   <span>·</span>
@@ -1260,25 +1262,27 @@ const StudentsPage = () => {
             </div>
 
             <div className="text-xs font-bold text-[#111827] uppercase tracking-widest mb-4 font-['Outfit']">Journey Progress</div>
-            <div className="flex items-start mb-6">
-              {STUDENT_JOURNEY.map((stage, idx) => {
-                const currentIdx = getStudentJourneyIndex(selectedStudent);
-                const isLast = idx === STUDENT_JOURNEY.length - 1;
-                // The final stage has nothing after it, so reaching it counts as complete
-                const isDone = idx < currentIdx || (isLast && idx === currentIdx);
-                const isActive = idx === currentIdx && !isLast;
-                return (
-                  <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
-                    {idx > 0 && (
-                      <div className={`absolute top-4 -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-[#E5E7EB]'}`}></div>
-                    )}
-                    <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' : isActive ? 'bg-[#E6F1FB] border-[#85B7EB] text-[#0C447C] ring-4 ring-[#042C53]/5' : 'bg-gray-50 border-[#E5E7EB] text-[#6B7280]'}`}>
-                      {isDone ? <CheckCircle2 size={14} /> : idx + 1}
+            <div className="overflow-x-auto scrollbar-hide mb-6 py-1">
+              <div className="flex items-start min-w-[380px]">
+                {STUDENT_JOURNEY.map((stage, idx) => {
+                  const currentIdx = getStudentJourneyIndex(selectedStudent);
+                  const isLast = idx === STUDENT_JOURNEY.length - 1;
+                  // The final stage has nothing after it, so reaching it counts as complete
+                  const isDone = idx < currentIdx || (isLast && idx === currentIdx);
+                  const isActive = idx === currentIdx && !isLast;
+                  return (
+                    <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
+                      {idx > 0 && (
+                        <div className={`absolute top-4 -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-[#E5E7EB]'}`}></div>
+                      )}
+                      <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' : isActive ? 'bg-[#E6F1FB] border-[#85B7EB] text-[#0C447C] ring-4 ring-[#042C53]/5' : 'bg-gray-50 border-[#E5E7EB] text-[#6B7280]'}`}>
+                        {isDone ? <CheckCircle2 size={14} /> : idx + 1}
+                      </div>
+                      <div className={`text-[10px] leading-tight mt-2 px-0.5 font-semibold text-center break-words ${isDone ? 'text-[#27500A]' : isActive ? 'text-[#0C447C] font-bold' : 'text-[#6B7280]'}`}>{getStageLabel(stage)}</div>
                     </div>
-                    <div className={`text-[10px] leading-tight mt-2 px-0.5 font-semibold text-center break-words ${isDone ? 'text-[#27500A]' : isActive ? 'text-[#0C447C] font-bold' : 'text-[#6B7280]'}`}>{getStageLabel(stage)}</div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
