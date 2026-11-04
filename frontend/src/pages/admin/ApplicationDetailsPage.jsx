@@ -26,12 +26,15 @@ import {
   Award,
   AlertTriangle,
   FileCheck2,
-  CreditCard
+  CreditCard,
+  Upload,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import { applicationAPI, admissionTrackingAPI, formatApiError } from '../../utils/api';
+import { applicationAPI, admissionTrackingAPI, studentAPI, formatApiError } from '../../utils/api';
 import { Button } from '../../components/ui/button';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Separator } from '../../components/ui/separator';
@@ -88,9 +91,12 @@ const ApplicationDetailsPage = () => {
   const id = paramId || applicationId;
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const { deleteApplication } = useData();
+  const { deleteApplication, uploadStudentDocument, viewStudentDocument } = useData();
 
   const [application, setApplication] = useState(null);
+  const [studentDetails, setStudentDetails] = useState(null);
+  const [docCategory, setDocCategory] = useState('Offer Letter');
+  const [uploadingDoc, setUploadingDoc] = useState(false);
   const [historyList, setHistoryList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState(null);
@@ -119,6 +125,17 @@ const ApplicationDetailsPage = () => {
       // 1. Fetch main application
       const appRes = await applicationAPI.getById(id);
       setApplication(appRes.data);
+
+      // 2. Fetch full student profile & uploaded documents so staff/agent can collect & upload documents directly here
+      const sId = appRes.data?.studentId?.id || appRes.data?.studentId?._id || appRes.data?.studentId || appRes.data?.student?.id || appRes.data?.student?._id;
+      if (sId) {
+        try {
+          const stuRes = await studentAPI.getById(sId);
+          setStudentDetails(stuRes.data);
+        } catch (stuErr) {
+          console.warn('Student details fetch fallback:', stuErr);
+        }
+      }
 
       // 3. Fetch audit history
       try {
@@ -195,7 +212,7 @@ const ApplicationDetailsPage = () => {
     try {
       await deleteApplication(application.id || application._id);
       toast.success('Application deleted successfully');
-      navigate(isAdmin() ? '/admin/applications' : '/agent/applications');
+      navigate(studentRefId ? (isAdmin() ? `/admin/students/${studentRefId}` : `/agent/students/${studentRefId}`) : (isAdmin() ? '/admin/students' : '/agent/students'));
     } catch (err) {
       console.error('Delete failed:', err);
       toast.error('Failed to delete application', { description: formatApiError(err) });
@@ -217,7 +234,10 @@ const ApplicationDetailsPage = () => {
   }, [application?.status, isAdmin]);
 
   // Back destination
-  const backRoute = isAdmin() ? '/admin/applications' : '/agent/applications';
+  const studentRefId = application?.studentId || application?.student?.id || application?.student?._id;
+  const backRoute = studentRefId
+    ? (isAdmin() ? `/admin/students/${studentRefId}` : `/agent/students/${studentRefId}`)
+    : (isAdmin() ? '/admin/students' : '/agent/students');
 
   if (loading) {
     return (
@@ -558,6 +578,107 @@ const ApplicationDetailsPage = () => {
             </CardContent>
           </Card>
 
+          {/* Student & Admission Documents (Collect & Upload Offer Letter, Passport, Results, etc.) */}
+          <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden" data-testid="application-documents-card">
+            <CardHeader className="border-b border-[#F3F4F6] px-6 py-4 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base font-semibold font-['Outfit'] flex items-center gap-2 text-[#111827]">
+                <FileText className="w-4 h-4 text-[#042C53]" /> Student & Offer Documents
+              </CardTitle>
+              <Badge variant="outline" className="text-[10px] border-[#E5E7EB] text-[#4B5563]">
+                {(studentDetails?.documents || application.student?.documents || []).length} files
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4 text-xs">
+              <p className="text-[11px] text-[#6B7280] leading-relaxed">
+                Collect student registration documents (Passport, Photo, Results) or upload the University Offer Letter and payment proofs directly on this application.
+              </p>
+
+              {/* Existing Documents List */}
+              <div className="space-y-2 max-h-56 overflow-y-auto">
+                {(studentDetails?.documents || application.student?.documents || []).length === 0 ? (
+                  <div className="p-3 rounded-lg border border-dashed border-[#E5E7EB] text-center text-[#9CA3AF] text-[11px]">
+                    No documents uploaded for this student yet.
+                  </div>
+                ) : (
+                  (studentDetails?.documents || application.student?.documents || []).map((doc, idx) => (
+                    <div
+                      key={doc._id || doc.id || idx}
+                      className="flex items-center justify-between gap-2 p-2.5 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] hover:bg-white transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-[#111827] block truncate">
+                          {doc.category || doc.customName || doc.name || 'Document'}
+                        </span>
+                        <span className="text-[10px] text-[#6B7280] block truncate">
+                          {doc.name || doc.fileName || 'Attached file'}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-[11px] font-semibold border-[#E5E7EB] text-[#042C53] shrink-0"
+                        onClick={() => viewStudentDocument(studentRefId, doc._id || doc.id)}
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> View / Collect
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Upload New Document (Offer Letter, Passport, Results, Payment Proof) */}
+              {studentRefId && (
+                <div className="pt-3 border-t border-[#F3F4F6] space-y-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280] block">
+                    Upload Document / Offer Letter
+                  </span>
+                  <div className="flex gap-2">
+                    <select
+                      value={docCategory}
+                      onChange={(e) => setDocCategory(e.target.value)}
+                      className="h-8 px-2.5 rounded-lg border border-[#E5E7EB] bg-white text-xs font-medium text-[#111827] flex-1"
+                    >
+                      <option value="Offer Letter">Offer Letter</option>
+                      <option value="Passport">Passport Copy</option>
+                      <option value="Academic Results">Academic Results / Transcripts</option>
+                      <option value="Photo">Passport Size Photo</option>
+                      <option value="Payment Receipt">Fee Payment Proof</option>
+                      <option value="eVAL">eVAL Document</option>
+                      <option value="Other">Other Document</option>
+                    </select>
+                    <label className="inline-flex items-center justify-center px-3 h-8 rounded-lg bg-[#042C53] hover:bg-[#0C447C] text-white text-xs font-semibold cursor-pointer transition-colors shrink-0">
+                      <Upload className="w-3.5 h-3.5 mr-1.5" />
+                      {uploadingDoc ? 'Uploading...' : 'Upload File'}
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        className="hidden"
+                        disabled={uploadingDoc}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingDoc(true);
+                          try {
+                            await uploadStudentDocument(studentRefId, file, docCategory, docCategory);
+                            toast.success(`${docCategory} uploaded successfully`);
+                            const stuRes = await studentAPI.getById(studentRefId);
+                            setStudentDetails(stuRes.data);
+                          } catch (err) {
+                            toast.error('Failed to upload document', { description: formatApiError(err) });
+                          } finally {
+                            setUploadingDoc(false);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Linked University Card */}
           <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden">
             <CardHeader className="border-b border-[#F3F4F6] px-6 py-4 flex flex-row items-center justify-between space-y-0">
@@ -616,11 +737,14 @@ const ApplicationDetailsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-3 text-xs">
-              <div>
-                <span className="text-sm font-bold text-[#111827] block">{application.agent?.agencyName || application.agent?.name || 'Assigned Agency'}</span>
-                <span className="text-[#6B7280] block mt-0.5">{application.agent?.name}</span>
-                <span className="text-[#6B7280] block">{application.agent?.email}</span>
-                {application.agent?.phone && <span className="text-[#6B7280] block">{application.agent.phone}</span>}
+              <div className="flex items-start gap-3">
+                <AgencyLogo agent={application.agent} size="md" />
+                <div>
+                  <span className="text-sm font-bold text-[#111827] block">{application.agent?.agencyName || application.agent?.name || 'Assigned Agency'}</span>
+                  <span className="text-[#6B7280] block mt-0.5">{application.agent?.name}</span>
+                  <span className="text-[#6B7280] block">{application.agent?.email}</span>
+                  {application.agent?.phone && <span className="text-[#6B7280] block">{application.agent.phone}</span>}
+                </div>
               </div>
             </CardContent>
           </Card>

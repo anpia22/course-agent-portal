@@ -72,7 +72,8 @@ function App() {
                   <Route path="students" element={<StudentsPage />} />
                   <Route path="students/:studentId" element={<StudentDetailsPage />} />
                   <Route path="students/:studentId/edit" element={<StudentEditPage />} />
-                  <Route path="applications" element={<ApplicationsPage />} />
+                  {/* Applications consolidated into Students */}
+                  <Route path="applications" element={<Navigate to="/admin/students" replace />} />
                   <Route path="applications/:applicationId" element={<ApplicationDetailsPage />} />
                   <Route path="universities" element={<UniversitiesPage />} />
                   <Route path="universities/:universityId" element={<UniversityDetailsPage />} />
@@ -99,7 +100,8 @@ function App() {
                   <Route path="news" element={<NewsPage />} />
                   <Route path="students" element={<AgentStudentsPage />} />
                   <Route path="students/:studentId" element={<StudentDetailsPage />} />
-                  <Route path="applications" element={<AgentApplicationsPage />} />
+                  {/* Applications consolidated into Students */}
+                  <Route path="applications" element={<Navigate to="/agent/students" replace />} />
                   <Route path="applications/:applicationId" element={<ApplicationDetailsPage />} />
                   <Route path="universities" element={<AgentUniversitiesPage />} />
                   <Route path="commission" element={<CommissionsPage />} />

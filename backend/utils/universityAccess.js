@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 
-// Which universities an agent may see and submit students to.
+// Which Malaysian universities an agent may see and submit students to.
 // Super Admin sets this per agent (User.universityAccessMode / allowedUniversityIds).
 // Staff and any non-agent user are never limited.
 
@@ -13,18 +13,22 @@ const getAccessMode = (user) => (ACCESS_MODES.includes(user?.universityAccessMod
 const getAllowedIds = (user) => (Array.isArray(user?.allowedUniversityIds) ? user.allowedUniversityIds.map(String) : []);
 
 // Sequelize condition on University columns, or null when the user has no limit.
-// `idColumn` / `countryColumn` let callers point at a joined table.
+// All agent directory queries are strictly scoped to Malaysia, plus custom assigned IDs if mode === 'custom'.
 const universityAccessCondition = (user, { idColumn = 'id', countryColumn = 'country' } = {}) => {
   if (!isAgent(user)) return null;
+  const malaysiaOnly = { [countryColumn]: { [Op.iLike]: 'Malaysia' } };
   switch (getAccessMode(user)) {
-    case 'malaysia_only':
-      return { [countryColumn]: { [Op.iLike]: 'Malaysia' } };
+    case 'custom':
+      return {
+        ...malaysiaOnly,
+        [idColumn]: { [Op.in]: getAllowedIds(user) }
+      };
     case 'foreign_only':
       return { [countryColumn]: { [Op.notILike]: 'Malaysia' } };
-    case 'custom':
-      return { [idColumn]: { [Op.in]: getAllowedIds(user) } };
+    case 'malaysia_only':
+    case 'all':
     default:
-      return null;
+      return malaysiaOnly;
   }
 };
 
@@ -41,14 +45,14 @@ const canAccessUniversity = (user, university) => {
   if (!isAgent(user)) return true;
   const isMalaysian = String(university?.country || '').trim().toLowerCase() === 'malaysia';
   switch (getAccessMode(user)) {
-    case 'malaysia_only':
-      return isMalaysian;
+    case 'custom':
+      return isMalaysian && getAllowedIds(user).includes(String(university?.id));
     case 'foreign_only':
       return !isMalaysian;
-    case 'custom':
-      return getAllowedIds(user).includes(String(university?.id));
+    case 'malaysia_only':
+    case 'all':
     default:
-      return true;
+      return isMalaysian;
   }
 };
 

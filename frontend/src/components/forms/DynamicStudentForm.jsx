@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { readFee, extractNationalityFees } from '../../utils/programFee';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -25,33 +26,42 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../../components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, GraduationCap, Coins } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import CountrySelector from './specialized/CountrySelector';
 import PhoneInput from './specialized/PhoneInput';
 import QualificationSelector from './specialized/QualificationSelector';
-import { isCountryMatch } from '../../lib/countries';
 
 const DEFAULT_FORM_FIELDS = [
   { id: 'name', label: 'Full Name', type: 'text', required: true, order: 1, placeholder: 'e.g. John Doe' },
   { id: 'email', label: 'Email Address', type: 'email', required: true, order: 2, placeholder: 'e.g. john@example.com' },
-  { id: 'phone', label: 'Phone Number', type: 'phone', required: true, order: 3, placeholder: '+1 234 567 8900' },
-  { id: 'universityId', label: 'University', type: 'university', required: true, order: 5 },
+  { id: 'phone', label: 'Phone Number', type: 'phone', required: true, order: 3, placeholder: '+60 12 345 6789' },
+  {
+    id: 'studentType',
+    label: 'Student Category (Local / International)',
+    type: 'select',
+    options: ['International Student', 'Local (Malaysian) Student'],
+    required: true,
+    order: 3.5,
+    placeholder: 'Select student category'
+  },
+  { id: 'nationality', label: 'Student Nationality', type: 'country', required: false, order: 4, placeholder: 'Select student nationality' },
+  { id: 'universityId', label: 'University (Malaysia)', type: 'university', required: true, order: 5 },
   { id: 'courseInterested', label: 'Course', type: 'course', required: true, order: 6 },
   { id: 'education', label: 'Highest Qualification', type: 'qualification', required: true, order: 7 },
   { id: 'notes', label: 'Internal Notes', type: 'paragraph', required: false, order: 8, placeholder: 'Any background notes or remarks...' }
 ];
 
-// Only these four documents are uploaded at registration. Only confirmed applications are registered.
+// Only these documents are uploaded at registration. Only confirmed applications are registered.
 const DOCUMENT_SLOTS = [
-  { category: 'Passport', label: 'Passport' },
+  { category: 'Passport', label: 'Passport / IC' },
   { category: 'Photo', label: 'Photo' },
   { category: 'Results', label: 'Results' },
 ];
 
-const DynamicStudentForm = ({ studentData, onSuccess }) => {
+const DynamicStudentForm = ({ studentData, onSuccess, defaultUniversityId = '', defaultCourseId = '' }) => {
   const [files, setFiles] = useState({});
   // 'Other documents' can hold several files, each with a name: [{ file, name }]
   const [otherFiles, setOtherFiles] = useState([]);
@@ -127,7 +137,6 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
             : z.string().optional();
       }
 
-      // Add regex validation if specified
       if (field.regex) {
         const regexPattern = new RegExp(field.regex);
         fieldSchema = fieldSchema.regex(regexPattern, field.regexError || 'Invalid format');
@@ -160,12 +169,18 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
       if (studentData.courseInterested) values.courseInterested = studentData.courseInterested;
       if (studentData.notes) values.notes = studentData.notes;
       if (studentData.agentId) values.agentId = studentData.agentId;
+      if (!values.studentType) values.studentType = 'International Student';
       if (studentData.universityId || studentData.customFields?.universityId) {
         values.universityId = studentData.universityId || studentData.customFields?.universityId;
       }
       return values;
     }
-    return {};
+    return {
+      studentType: 'International Student',
+      nationality: '',
+      universityId: defaultUniversityId || '',
+      courseInterested: defaultCourseId || ''
+    };
   };
 
   const {
@@ -180,6 +195,17 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
     defaultValues: getDefaultValues()
   });
 
+  useEffect(() => {
+    if (!studentData) {
+      if (defaultUniversityId) {
+        setValue('universityId', defaultUniversityId, { shouldValidate: true, shouldDirty: true });
+      }
+      if (defaultCourseId) {
+        setValue('courseInterested', defaultCourseId, { shouldValidate: true, shouldDirty: true });
+      }
+    }
+  }, [defaultUniversityId, defaultCourseId, studentData, setValue]);
+
   // Update form values when studentData changes
   useEffect(() => {
     if (studentData) {
@@ -191,31 +217,23 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentData, setValue]);
 
-  // Dynamically identify the country field ID (supports default 'country' and custom fields)
-  const countryFieldId = useMemo(() => {
-    const f = activeFields.find(field =>
-      field.type === 'country' ||
-      field.id === 'country' ||
-      (field.label && field.label.toLowerCase().includes('country'))
-    );
-    return f ? f.id : 'country';
-  }, [activeFields]);
-
-  const watchedCountry = watch(countryFieldId);
   const watchedUniversityId = watch('universityId');
+  const watchedCourseInterested = watch('courseInterested');
+  const watchedStudentType = watch('studentType') || 'International Student';
+  const watchedNationality = watch('nationality') || '';
 
-  // Filter universities based on selected Country of Interest.
-  // If no Country of Interest is selected, show all target universities.
-  const filteredUniversities = useMemo(() => {
-    if (!universities || universities.length === 0) return [];
-    if (!watchedCountry || !watchedCountry.trim()) {
-      return universities;
+  // Keep studentType and nationality in sync when Malaysia is selected
+  useEffect(() => {
+    if (watchedStudentType === 'Local (Malaysian) Student' && !watchedNationality) {
+      setValue('nationality', 'Malaysia', { shouldDirty: true });
     }
-    return universities.filter(u => isCountryMatch(u.country, watchedCountry));
-  }, [universities, watchedCountry]);
+  }, [watchedStudentType, watchedNationality, setValue]);
+
+  const filteredUniversities = useMemo(() => {
+    return universities || [];
+  }, [universities]);
 
   // Filter courses based on selected Target University (if one is chosen).
-  // If no university is chosen, show all active courses.
   const filteredCourses = useMemo(() => {
     if (!courses || courses.length === 0) return [];
     const active = courses.filter(c => c.status === 'active' || !c.status);
@@ -224,22 +242,15 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
       const uniIds = Array.isArray(c.universityIds) && c.universityIds.length > 0
         ? c.universityIds.map(String)
         : (c.universityId ? [String(c.universityId)] : []);
-      // If course is open to all universities
       if (uniIds.length === 0) return true;
-      // If course is offered by the selected university
       return uniIds.includes(String(watchedUniversityId));
     });
   }, [courses, watchedUniversityId]);
 
-  // If student changes country to one that doesn't include their previously selected university, clear universityId
-  useEffect(() => {
-    if (watchedCountry && watchedCountry.trim() && watchedUniversityId) {
-      const isMatch = filteredUniversities.some(u => String(u.id || u._id) === String(watchedUniversityId));
-      if (!isMatch) {
-        setValue('universityId', '', { shouldValidate: true, shouldDirty: true });
-      }
-    }
-  }, [watchedCountry, filteredUniversities, watchedUniversityId, setValue]);
+  const selectedCourseObj = useMemo(() => {
+    if (!watchedCourseInterested || !courses) return null;
+    return courses.find(c => c.name === watchedCourseInterested || String(c.id || c._id) === String(watchedCourseInterested)) || null;
+  }, [courses, watchedCourseInterested]);
 
   const onSubmit = async (data) => {
     try {
@@ -249,7 +260,11 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
 
       const studentPayload = {
         agentId: effectiveAgentId,
-        customFields: { ...data }
+        customFields: {
+          ...data,
+          studentType: data.studentType || 'International Student',
+          nationality: data.nationality || (data.studentType === 'Local (Malaysian) Student' ? 'Malaysia' : '')
+        }
       };
 
       // Map university if selected
@@ -281,7 +296,7 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
         if (label.includes('name') || idKey === 'name') studentPayload.name = val;
         else if (label.includes('email') || idKey === 'email') studentPayload.email = val;
         else if (label.includes('phone') || label.includes('mobile') || idKey === 'phone') studentPayload.phone = val;
-        else if (label.includes('country') || idKey === 'country') studentPayload.country = val;
+        else if (idKey === 'country') studentPayload.country = val;
         else if (label.includes('city') || idKey === 'city') studentPayload.city = val;
         else if (label.includes('education') || label.includes('qualification') || idKey === 'education') studentPayload.education = val;
         else if (label.includes('course') || idKey === 'courseinterested') studentPayload.courseInterested = val;
@@ -292,7 +307,6 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
       if (data.name) studentPayload.name = data.name;
       if (data.email) studentPayload.email = data.email;
       if (data.phone) studentPayload.phone = data.phone;
-      if (data.country) studentPayload.country = data.country;
       if (data.education) studentPayload.education = data.education;
       if (data.courseInterested) studentPayload.courseInterested = data.courseInterested;
       if (data.notes) studentPayload.notes = data.notes;
@@ -384,7 +398,14 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
           </div>
         );
 
-      case 'course':
+      case 'course': {
+        const parsedSelectedFee = selectedCourseObj ? readFee(selectedCourseObj.tuitionFee) : null;
+        const selectedNatTiers = selectedCourseObj ? extractNationalityFees(selectedCourseObj.description) : [];
+        const isLocalStudent = watchedStudentType === 'Local (Malaysian) Student';
+        const matchingNatTier = watchedNationality
+          ? selectedNatTiers.find(t => t.nationality.toLowerCase().includes(watchedNationality.toLowerCase()))
+          : null;
+
         return (
           <div key={field.id} className="space-y-2">
             <div className="flex items-center justify-between">
@@ -426,7 +447,14 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
                     uniLabel = ` (${uniCount} Universities)`;
                   }
                 }
-                const labelText = `${c.name}${c.level ? ` (${c.level})` : ''}${uniLabel}`;
+                const cFee = readFee(c.tuitionFee);
+                let feeHint = '';
+                if (cFee) {
+                  if (isLocalStudent && cFee.local) feeHint = ` · Local: ${cFee.local.text}`;
+                  else if (!isLocalStudent && cFee.international) feeHint = ` · Intl: ${cFee.international.text}`;
+                  else feeHint = ` · ${cFee.text}`;
+                }
+                const labelText = `${c.name}${c.level ? ` (${c.level})` : ''}${uniLabel}${feeHint}`;
                 return (
                   <option key={c.id || c._id} value={c.name}>
                     {labelText}
@@ -437,8 +465,31 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
             {error && (
               <p className="text-xs text-red-500">{error.message}</p>
             )}
+            {selectedCourseObj && (parsedSelectedFee || selectedNatTiers.length > 0) && (
+              <div className="rounded-lg bg-[#F9FAFB] border border-gray-200 px-3 py-2.5 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-[#042C53]" />
+                    Applicable Tuition ({isLocalStudent ? 'Local Malaysian' : 'International'}):
+                  </span>
+                  <span className="font-bold text-[#042C53]">
+                    {matchingNatTier
+                      ? `${matchingNatTier.text} (${matchingNatTier.nationality})`
+                      : isLocalStudent
+                        ? (parsedSelectedFee?.local?.text || parsedSelectedFee?.text || 'On request')
+                        : (parsedSelectedFee?.international?.text || parsedSelectedFee?.text || 'On request')}
+                  </span>
+                </div>
+                {parsedSelectedFee?.hasDual && (
+                  <p className="text-[11px] text-gray-500">
+                    Full Schedule — International: <strong>{parsedSelectedFee.international.text}</strong> · Local (Malaysian): <strong>{parsedSelectedFee.local.text}</strong>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
+      }
 
       case 'university':
         return (
@@ -447,15 +498,9 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
               <Label htmlFor={field.id} className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 {field.label} {field.required && <span className="text-red-500">*</span>}
               </Label>
-              {watchedCountry && watchedCountry.trim() ? (
-                <span className="text-[11px] font-medium text-[#042C53] bg-blue-50 px-2 py-0.5 rounded-md">
-                  {filteredUniversities.length} {filteredUniversities.length === 1 ? 'university' : 'universities'} in {watchedCountry}
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-gray-400">
-                  {filteredUniversities.length} {filteredUniversities.length === 1 ? 'university' : 'universities'} available
-                </span>
-              )}
+              <span className="text-[11px] font-medium text-gray-400">
+                {filteredUniversities.length} {filteredUniversities.length === 1 ? 'university' : 'universities'} available
+              </span>
             </div>
             <select
               id={field.id}
@@ -465,24 +510,15 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
                 error ? 'border-red-500' : 'border-gray-200'
               )}
             >
-              <option value="">
-                {watchedCountry && watchedCountry.trim()
-                  ? `Select University in ${watchedCountry}`
-                  : 'Select University'}
-              </option>
+              <option value="">Select University in Malaysia</option>
               {filteredUniversities.map(u => (
                 <option key={u.id || u._id} value={u.id || u._id}>
-                  {u.name} {u.country ? `(${u.country})` : ''}
+                  {u.name} {u.city ? `(${u.city})` : ''}
                 </option>
               ))}
             </select>
             {error && (
               <p className="text-xs text-red-500">{error.message}</p>
-            )}
-            {watchedCountry && watchedCountry.trim() && filteredUniversities.length === 0 && (
-              <p className="text-xs text-amber-600 font-medium">
-                No partner universities found for {watchedCountry}. Clear Country of Interest to select from all available universities.
-              </p>
             )}
           </div>
         );
@@ -514,9 +550,9 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
             </Label>
             <Select
               value={fieldValue || ''}
-              onValueChange={(value) => setValue(field.id, value)}
+              onValueChange={(value) => setValue(field.id, value, { shouldValidate: true, shouldDirty: true })}
             >
-              <SelectTrigger className={cn("h-10 text-sm", error ? 'border-red-500' : 'border-gray-200')}>
+              <SelectTrigger className={cn("h-10 text-sm bg-white", error ? 'border-red-500' : 'border-gray-200')}>
                 <SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
@@ -541,7 +577,12 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
             </Label>
             <CountrySelector
               value={fieldValue || ''}
-              onChange={(value) => setValue(field.id, value || '', { shouldValidate: true, shouldDirty: true })}
+              onChange={(value) => {
+                setValue(field.id, value || '', { shouldValidate: true, shouldDirty: true });
+                if (field.id === 'nationality' && value === 'Malaysia') {
+                  setValue('studentType', 'Local (Malaysian) Student', { shouldValidate: true, shouldDirty: true });
+                }
+              }}
               placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`}
               className={error ? 'border-red-500' : ''}
             />
@@ -579,7 +620,7 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
               value={fieldValue || ''}
               onChange={(value) => setValue(field.id, value)}
               placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-              defaultCountry={field.defaultCountry || 'IN'}
+              defaultCountry={field.defaultCountry || 'MY'}
               className={error ? 'border-red-500' : ''}
             />
             {error && (
@@ -741,13 +782,22 @@ const DynamicStudentForm = ({ studentData, onSuccess }) => {
         </div>
       )}
 
+      {!isEditMode && (
+        <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl text-xs text-blue-900 flex items-center gap-2">
+          <GraduationCap className="w-4 h-4 text-[#042C53] shrink-0" />
+          <span>Registering this student will immediately create and submit their university course application.</span>
+        </div>
+      )}
+
       <Button
         type="submit"
         className="w-full bg-[#042C53] hover:bg-[#0C447C] h-12 text-sm font-bold shadow-sm"
         disabled={isSubmitting}
         data-testid="dynamic-student-submit-btn"
       >
-        {isSubmitting ? (isEditMode ? 'Updating...' : 'Registering...') : (isEditMode ? 'Update Student' : 'Register Student')}
+        {isSubmitting
+          ? (isEditMode ? 'Updating...' : 'Registering & Submitting Application...')
+          : (isEditMode ? 'Update Student' : 'Register Student & Submit Application')}
       </Button>
     </form>
   );

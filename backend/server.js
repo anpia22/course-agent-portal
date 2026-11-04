@@ -88,8 +88,8 @@ app.use(cors({
 }));
 
 // Body parsing with size limits (file uploads go through multer with its own limits)
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb', parameterLimit: 200 }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb', parameterLimit: 200 }));
 app.use(cookieParser());
 app.use(hpp());
 app.use(sanitizeRequest);

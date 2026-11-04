@@ -21,7 +21,14 @@ const standardIncludes = [
   {
     model: Application,
     as: 'applications',
-    attributes: ['id', 'applicationNumber', 'courseName', 'courseLevel', 'intakeTerm', 'status', 'pipelineStage', 'feeStatus', 'isInvoiceEligible']
+    attributes: ['id', 'applicationNumber', 'universityId', 'courseId', 'courseName', 'courseLevel', 'intakeTerm', 'status', 'pipelineStage', 'feeStatus', 'isInvoiceEligible', 'createdAt'],
+    include: [
+      {
+        model: University,
+        as: 'university',
+        attributes: ['id', 'name', 'code']
+      }
+    ]
   }
 ];
 
@@ -200,8 +207,15 @@ class StudentService {
         {
           model: Application,
           as: 'applications',
-          attributes: ['id', 'status', 'pipelineStage', 'feeStatus'],
-          required: false
+          attributes: ['id', 'applicationNumber', 'universityId', 'courseId', 'courseName', 'courseLevel', 'status', 'pipelineStage', 'feeStatus', 'createdAt'],
+          required: false,
+          include: [
+            {
+              model: University,
+              as: 'university',
+              attributes: ['id', 'name', 'code']
+            }
+          ]
         }
       ],
       order: [['createdAt', 'DESC']],

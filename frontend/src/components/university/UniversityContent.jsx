@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Coins, FileText, Megaphone, Plus, Trash2, Pencil, Eye, Download, Upload, GraduationCap, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { universityAPI, formatApiError } from '../../utils/api';
+import { readFee, extractNationalityFees, CURRENCY_SYMBOLS } from '../../utils/programFee';
 import { useData } from '../../context/DataContext';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -10,16 +11,23 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
-const money = (amount, currency) =>
-  amount == null ? '-' : `${currency ? `${currency} ` : ''}${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+const FEE_CURRENCIES = [
+  { code: 'MYR', label: 'MYR (RM)' },
+  { code: 'USD', label: 'USD ($)' },
+  { code: 'GBP', label: 'GBP (£)' },
+  { code: 'EUR', label: 'EUR (€)' },
+  { code: 'AUD', label: 'AUD (A$)' },
+  { code: 'CAD', label: 'CAD (C$)' },
+  { code: 'SGD', label: 'SGD (S$)' },
+  { code: 'INR', label: 'INR (₹)' },
+  { code: 'AED', label: 'AED' }
+];
 
-const CURRENCY_SYMBOLS = { USD: '$', GBP: '£', EUR: '€', AUD: 'A$', CAD: 'C$', NZD: 'NZ$', INR: '₹', SGD: 'S$', AED: 'AED ' };
-
-// "USD 20,000 / year" -> "$20,000 / year"; strings without a known currency code are shown as stored
-const tuitionLabel = (fee) => {
-  if (!fee) return '-';
-  const m = String(fee).match(/^\s*([A-Z]{3})\s+(.*)$/);
-  return m && CURRENCY_SYMBOLS[m[1]] ? `${CURRENCY_SYMBOLS[m[1]]}${m[2]}` : fee;
+const money = (amount, currency) => {
+  if (amount == null) return '-';
+  const code = String(currency || 'MYR').toUpperCase();
+  const sym = CURRENCY_SYMBOLS[code] || (code ? `${code} ` : 'RM ');
+  return `${sym}${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 };
 
 const emptyUpdate = { type: 'news', title: '', content: '', amount: '', deadline: '', notifyAgents: true };
@@ -152,7 +160,13 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
 
   const startEditingFees = () => {
     setFeeError('');
-    setFeeDraft(fees.map((fee) => ({ id: fee.id, label: fee.label || '', amount: String(fee.amount ?? ''), currency: fee.currency || 'USD', note: fee.note || '' })));
+    setFeeDraft(fees.map((fee) => ({
+      id: fee.id,
+      label: fee.label || '',
+      amount: String(fee.amount ?? ''),
+      currency: fee.currency || 'MYR',
+      note: fee.note || ''
+    })));
   };
 
   const changeFee = (index, field, value) =>
@@ -162,7 +176,7 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
     for (const [index, fee] of feeDraft.entries()) {
       if (!fee.label.trim()) return setFeeError(`Fee ${index + 1}: a name is required`);
       if (fee.amount === '' || isNaN(parseFloat(fee.amount)) || parseFloat(fee.amount) < 0) return setFeeError(`Fee ${index + 1} (${fee.label}): enter an amount, 0 or more`);
-      if (!/^[A-Za-z]{3}$/.test(fee.currency.trim())) return setFeeError(`Fee ${index + 1} (${fee.label}): the currency is a 3-letter code such as USD or MYR`);
+      if (!/^[A-Za-z]{3}$/.test(fee.currency.trim())) return setFeeError(`Fee ${index + 1} (${fee.label}): the currency is a 3-letter code such as MYR or USD`);
     }
     setFeeError('');
     setSavingFees(true);
@@ -242,7 +256,7 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Amount (optional)</Label>
-                    <Input value={form.amount || ''} maxLength={100} placeholder="e.g. 50% tuition waiver" onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                    <Input value={form.amount || ''} maxLength={100} placeholder="e.g. 50% tuition waiver / RM 5,000" onChange={(e) => setForm({ ...form, amount: e.target.value })} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Deadline (optional)</Label>
@@ -309,7 +323,9 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
         <CardHeader className="border-b border-gray-100 px-6 py-4 flex flex-row items-center justify-between space-y-0">
           <div>
             <CardTitle className={sectionTitle}><Coins size={18} className="text-[#042C53]" /> Fee structure</CardTitle>
-            <CardDescription className="text-xs text-gray-500 mt-0.5">Fees besides tuition. Tuition per course is shown below.</CardDescription>
+            <CardDescription className="text-xs text-gray-500 mt-0.5">
+              University fees (Application, EMGS Visa, Registration, Local vs International student charges). Tuition per course is shown in Programs.
+            </CardDescription>
           </div>
           {canManage && !feeDraft && (
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={startEditingFees}>
@@ -322,10 +338,36 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
             <div className="p-6 space-y-3">
               {feeDraft.map((fee, index) => (
                 <div key={index} className="grid grid-cols-12 gap-2 items-start">
-                  <Input className="col-span-4" placeholder="Name, e.g. Application fee" value={fee.label} onChange={(e) => changeFee(index, 'label', e.target.value)} />
-                  <Input className="col-span-2" type="number" min="0" step="0.01" placeholder="Amount" value={fee.amount} onChange={(e) => changeFee(index, 'amount', e.target.value)} />
-                  <Input className="col-span-2 uppercase" maxLength={3} placeholder="USD" value={fee.currency} onChange={(e) => changeFee(index, 'currency', e.target.value)} />
-                  <Input className="col-span-3" placeholder="Note (optional)" value={fee.note} onChange={(e) => changeFee(index, 'note', e.target.value)} />
+                  <Input
+                    className="col-span-4 text-xs"
+                    placeholder="Name, e.g. EMGS Visa Fee (International) / Registration (Local)"
+                    value={fee.label}
+                    onChange={(e) => changeFee(index, 'label', e.target.value)}
+                  />
+                  <Input
+                    className="col-span-2 text-xs"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Amount"
+                    value={fee.amount}
+                    onChange={(e) => changeFee(index, 'amount', e.target.value)}
+                  />
+                  <select
+                    className="col-span-2 h-10 rounded-md border border-gray-200 bg-white px-2 text-xs"
+                    value={fee.currency || 'MYR'}
+                    onChange={(e) => changeFee(index, 'currency', e.target.value)}
+                  >
+                    {FEE_CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
+                  </select>
+                  <Input
+                    className="col-span-3 text-xs"
+                    placeholder="Student Type / Nationality note (e.g. International / Local / ASEAN)"
+                    value={fee.note}
+                    onChange={(e) => changeFee(index, 'note', e.target.value)}
+                  />
                   <Button type="button" variant="ghost" size="sm" className="col-span-1 h-9 w-9 p-0 text-red-600 hover:bg-red-50" aria-label="Remove fee"
                     onClick={() => setFeeDraft((prev) => prev.filter((_, i) => i !== index))}>
                     <Trash2 size={14} />
@@ -336,8 +378,8 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
               {feeError && <p className="text-[11px] text-red-500">{feeError}</p>}
               <div className="flex items-center justify-between pt-2">
                 <Button type="button" variant="outline" size="sm" className="h-8 text-xs gap-1"
-                  onClick={() => setFeeDraft((prev) => [...prev, { id: undefined, label: '', amount: '', currency: 'USD', note: '' }])}>
-                  <Plus size={14} /> Add fee
+                  onClick={() => setFeeDraft((prev) => [...prev, { id: undefined, label: '', amount: '', currency: 'MYR', note: '' }])}>
+                  <Plus size={14} /> Add fee (RM)
                 </Button>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setFeeDraft(null)} disabled={savingFees}>Cancel</Button>
@@ -353,14 +395,14 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
                 <TableRow>
                   <TableHead>Fee</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Note</TableHead>
+                  <TableHead>Student Category / Nationality Note</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {fees.map((fee) => (
                   <TableRow key={fee.id}>
                     <TableCell className="font-medium">{fee.label}</TableCell>
-                    <TableCell>{money(fee.amount, fee.currency)}</TableCell>
+                    <TableCell className="font-semibold text-[#042C53]">{money(fee.amount, fee.currency)}</TableCell>
                     <TableCell className="text-gray-500">{fee.note || '-'}</TableCell>
                   </TableRow>
                 ))}
@@ -377,7 +419,7 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
         <CardHeader className="border-b border-gray-100 px-6 py-4">
           <CardTitle className={sectionTitle}><GraduationCap size={18} className="text-[#042C53]" /> Programs ({courses.length})</CardTitle>
           <CardDescription className="text-xs text-gray-500 mt-0.5">
-            Tuition is what the student pays.
+            Tuition fees for International Students, Local (Malaysian) Students, and Nationality-specific tiers.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -408,19 +450,45 @@ const UniversityContent = ({ university, canManage, onChanged, show = 'all' }) =
                   <TableHead>Level</TableHead>
                   <TableHead>Faculty</TableHead>
                   <TableHead>Duration</TableHead>
-                  <TableHead>Tuition (student pays)</TableHead>
+                  <TableHead>Tuition (International / Local / Nationality)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCourses.map((course) => (
-                  <TableRow key={course.id}>
-                    <TableCell className="font-medium">{course.name}{course.code ? <span className="text-gray-400"> · {course.code}</span> : null}</TableCell>
-                    <TableCell>{course.level || '-'}</TableCell>
-                    <TableCell className="text-gray-600">{course.department || '-'}</TableCell>
-                    <TableCell className="text-gray-600">{course.duration || '-'}</TableCell>
-                    <TableCell>{tuitionLabel(course.tuitionFee)}</TableCell>
-                  </TableRow>
-                ))}
+                {filteredCourses.map((course) => {
+                  const parsedFee = readFee(course.tuitionFee);
+                  const natTiers = extractNationalityFees(course.description);
+                  return (
+                    <TableRow key={course.id}>
+                      <TableCell className="font-medium">{course.name}{course.code ? <span className="text-gray-400"> · {course.code}</span> : null}</TableCell>
+                      <TableCell>{course.level || '-'}</TableCell>
+                      <TableCell className="text-gray-600">{course.department || '-'}</TableCell>
+                      <TableCell className="text-gray-600">{course.duration || '-'}</TableCell>
+                      <TableCell>
+                        {parsedFee ? (
+                          parsedFee.hasDual ? (
+                            <div className="flex flex-col gap-0.5 text-xs">
+                              <span className="font-semibold text-[#042C53]">Intl: {parsedFee.international.text}</span>
+                              <span className="font-semibold text-emerald-700">Local: {parsedFee.local.text}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-semibold text-gray-900">{parsedFee.text}</span>
+                          )
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                        {natTiers.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {natTiers.map((t, i) => (
+                              <span key={i} className="inline-flex items-center text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
+                                {t.nationality}: {t.text}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { onboardingAPI, agentAPI, authAPI, formatApiError } from '../utils/api';
 import { Button } from '../components/ui/button';
 import { COUNTRIES } from '../utils/countries';
+import PhoneInput from '../components/forms/specialized/PhoneInput';
 import { cn } from '../lib/utils';
 
 const inputClass =
@@ -23,14 +24,21 @@ const inputClass =
 
 const labelClass = 'block text-xs font-semibold text-slate-700 mb-2';
 
-const Field = ({ label, id, required = false, hint, children, className = '' }) => (
+const Field = ({ label, id, required = false, hint, error, children, className = '' }) => (
   <div className={className}>
     <label htmlFor={id} className={labelClass}>
       {label}
       {required && <span className="text-red-500"> *</span>}
     </label>
     {children}
-    {hint && <p className="text-xs text-slate-500 mt-1.5">{hint}</p>}
+    {error ? (
+      <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        <span>{error}</span>
+      </p>
+    ) : hint ? (
+      <p className="text-xs text-slate-500 mt-1.5">{hint}</p>
+    ) : null}
   </div>
 );
 
@@ -57,6 +65,21 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  const validatePhone = (val) => {
+    if (!val || !val.trim()) {
+      return 'Phone number is required.';
+    }
+    const clean = val.replace(/\D/g, '');
+    if (clean.length < 10) {
+      return 'Please enter a valid phone number (at least 10 digits including country code).';
+    }
+    if (clean.length > 15) {
+      return 'Phone number cannot exceed 15 digits.';
+    }
+    return '';
+  };
   const [currentStep, setCurrentStep] = useState(0);
 
   // Step 1 and 2: agency, contact and login details
@@ -140,10 +163,13 @@ const RegisterPage = () => {
   const handleCreateLogin = async (e) => {
     e.preventDefault();
     setError('');
-    if (!formStep1.phone.trim() || !/^\+?[0-9]{10,}$/.test(formStep1.phone.replace(/[\s-]/g, ''))) {
-      setError('A valid phone number with at least 10 digits is required.');
+    const phoneErr = validatePhone(formStep1.phone);
+    if (phoneErr) {
+      setPhoneError(phoneErr);
+      setError(phoneErr);
       return;
     }
+    setPhoneError('');
     if (!formStep1.email.trim() || !/\S+@\S+\.\S+/.test(formStep1.email)) {
       setError('A valid official email address is required.');
       return;
@@ -406,14 +432,29 @@ const RegisterPage = () => {
                     disabled={!!invite.email}
                   />
                 </Field>
-                <Field label="Phone" id="phone" required>
-                  <input
+                <Field
+                  label="Phone"
+                  id="phone"
+                  required
+                  error={phoneError}
+                  hint="Select country code and enter phone number (digits only)"
+                >
+                  <PhoneInput
                     id="phone"
                     required
-                    className={inputClass}
+                    defaultCountry="MY"
                     value={formStep1.phone}
-                    onChange={setS1('phone')}
-                    placeholder="+60 12-345 6789"
+                    onChange={(val) => {
+                      setFormStep1((f) => ({ ...f, phone: val }));
+                      if (phoneError) setPhoneError('');
+                    }}
+                    onBlur={() => {
+                      if (formStep1.phone) {
+                        setPhoneError(validatePhone(formStep1.phone));
+                      }
+                    }}
+                    hasError={!!phoneError}
+                    placeholder="12 345 6789"
                   />
                 </Field>
               </div>

@@ -2,7 +2,7 @@ export const STAFF_ROLE_LABELS = {
   account_manager: 'Account Manager',
   head_recruitment: 'Head of Recruitment',
   head_admission: 'Head of Admission',
-  accounts: 'Accounts',
+  accounts: 'Accounts/Finance',
 };
 
 export const getRoleLabel = (user) => {

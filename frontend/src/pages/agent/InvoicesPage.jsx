@@ -168,9 +168,12 @@ const InvoicesPage = () => {
     }
     if (review === 'Approved') {
       if (payoff?.status === 'SETTLED') {
-        return { key: 'paid', label: 'Invoice paid', hint: payoff.settledAt ? `Paid on ${formatFinancialDate(payoff.settledAt)}` : 'Money sent to you', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
+        return { key: 'paid', label: 'Invoice paid', hint: payoff.settledAt ? `Paid on ${formatFinancialDate(payoff.settledAt)} · Released after university clearance` : 'Released to agent after university clearance', tone: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
       }
-      return { key: 'processing', label: 'Invoice processing', hint: 'Being processed by QStudy', tone: 'bg-blue-50 text-blue-800 border-blue-200' };
+      if (payoff?.universityPaid) {
+        return { key: 'university_paid', label: 'University paid', hint: 'University payment received · Invoice processing', tone: 'bg-teal-50 text-teal-800 border-teal-200' };
+      }
+      return { key: 'processing', label: 'Invoice processing', hint: 'Approved · Waiting for university payment clearance', tone: 'bg-blue-50 text-blue-800 border-blue-200' };
     }
     return { key: 'submitted', label: 'Invoice submitted', hint: 'Received by QStudy', tone: 'bg-gray-50 text-gray-700 border-gray-200' };
   };
@@ -178,12 +181,13 @@ const InvoicesPage = () => {
   const FILTERS = [
     { key: 'all', label: 'All' },
     { key: 'submitted', label: 'Invoice submitted' },
+    { key: 'amendment', label: 'Needs amendment' },
+    { key: 'university_paid', label: 'University paid' },
     { key: 'processing', label: 'Invoice processing' },
     { key: 'paid', label: 'Invoice paid' },
-    { key: 'amendment', label: 'Needs amendment' },
   ];
   const stageCounts = useMemo(() => {
-    const counts = { all: invoices.length, submitted: 0, processing: 0, paid: 0, amendment: 0 };
+    const counts = { all: invoices.length, submitted: 0, amendment: 0, university_paid: 0, processing: 0, paid: 0 };
     invoices.forEach((inv) => { counts[getStage(inv).key] += 1; });
     return counts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,10 +196,11 @@ const InvoicesPage = () => {
   const visibleInvoices = filteredInvoices.filter((inv) => filter === 'all' || getStage(inv).key === filter);
 
   const summaryCards = [
+    { filter: 'submitted', title: 'Invoice submitted', value: stageCounts.submitted, hint: '1. Received by QStudy', tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#111827]' },
     { filter: 'amendment', title: 'Needs amendment', value: stageCounts.amendment, hint: stageCounts.amendment ? 'Finance left a note for you' : 'Nothing to amend', tone: stageCounts.amendment ? 'border-amber-300 bg-amber-50' : 'border-[#E5E7EB] bg-white', valueTone: stageCounts.amendment ? 'text-amber-800' : 'text-[#111827]' },
-    { filter: 'submitted', title: 'Invoice submitted', value: stageCounts.submitted, hint: 'Received by QStudy', tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#111827]' },
-    { filter: 'processing', title: 'Invoice processing', value: stageCounts.processing, hint: 'Being processed by QStudy', tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#0C447C]' },
-    { filter: 'paid', title: 'Invoice paid', value: formatCurrency(stats.settledPayoutAmount), hint: `${stats.settledPayoutCount} paid by bank transfer`, tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#27500A]' },
+    { filter: 'university_paid', title: 'University paid', value: stageCounts.university_paid, hint: '2. University paid QStudy', tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#085041]' },
+    { filter: 'processing', title: 'Invoice processing', value: stageCounts.processing, hint: '3. Being processed by Finance', tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#0C447C]' },
+    { filter: 'paid', title: 'Invoice paid', value: formatCurrency(stats.settledPayoutAmount), hint: `4. ${stats.settledPayoutCount} released after clearance`, tone: 'border-[#E5E7EB] bg-white', valueTone: 'text-[#27500A]' },
   ];
 
   const InvoiceList = ({ list }) => (
@@ -289,8 +294,8 @@ const InvoicesPage = () => {
         </Button>
       </div>
 
-      {/* Summary: four things an agent wants to know, each opens the matching list */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Summary: five invoice stages in order, each opens the matching list */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {summaryCards.map((card) => (
           <button
             key={card.filter}

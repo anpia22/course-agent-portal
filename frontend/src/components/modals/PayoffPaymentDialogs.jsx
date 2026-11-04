@@ -52,7 +52,7 @@ export const PaymentExceptionDialog = ({ open, onOpenChange, payoff }) => {
           <DialogTitle className="font-['Outfit']">Pay before the university has paid</DialogTitle>
           <DialogDescription>
             {payoff?.payoffNumber}. The agent is normally paid only after the university pays QStudy. This lets
-            Accounts pay now. Your note and name are kept on the payoff.
+            Accounts/Finance pay now. Your note and name are kept on the payoff.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1.5">

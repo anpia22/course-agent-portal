@@ -64,36 +64,55 @@ const hashToken = (token) => crypto.createHash('sha256').update(String(token)).d
 // ── Request sanitising ──
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const MAX_STRING = 20000;
+const MAX_IMAGE_STRING = 10 * 1024 * 1024; // 10MB limit for image data URLs, logos, and avatars
 const MAX_DEPTH = 8;
+
+const isImageField = (key, value) => {
+  if (typeof key === 'string') {
+    const k = key.toLowerCase();
+    if (k === 'avatar' || k === 'logo' || k === 'agencylogo' || k.endsWith('logo') || k.endsWith('avatar')) {
+      return true;
+    }
+  }
+  if (typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:application/pdf'))) {
+    return true;
+  }
+  return false;
+};
 
 // Removes NUL / control characters, refuses prototype-pollution keys and absurd nesting or sizes.
 // Text is stored as typed and escaped where it is shown (React, escapeHtml in emails), so no
 // characters are stripped from normal text: that would corrupt legitimate names and notes.
-const cleanValue = (value, depth = 0) => {
+const cleanValue = (value, depth = 0, key = '') => {
   if (depth > MAX_DEPTH) {
     const err = new Error('Request is too deeply nested');
     err.statusCode = 400;
     throw err;
   }
   if (typeof value === 'string') {
-    if (value.length > MAX_STRING) {
+    const isImage = isImageField(key, value);
+    const limit = isImage ? MAX_IMAGE_STRING : MAX_STRING;
+    if (value.length > limit) {
       const err = new Error('A field in the request is too long');
       err.statusCode = 400;
       throw err;
     }
+    if (isImage) {
+      return value;
+    }
     // eslint-disable-next-line no-control-regex
     return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
   }
-  if (Array.isArray(value)) return value.map((v) => cleanValue(v, depth + 1));
+  if (Array.isArray(value)) return value.map((v) => cleanValue(v, depth + 1, key));
   if (value && typeof value === 'object') {
     const out = {};
-    for (const key of Object.keys(value)) {
-      if (FORBIDDEN_KEYS.has(key)) {
+    for (const k of Object.keys(value)) {
+      if (FORBIDDEN_KEYS.has(k)) {
         const err = new Error('Invalid request');
         err.statusCode = 400;
         throw err;
       }
-      out[key] = cleanValue(value[key], depth + 1);
+      out[k] = cleanValue(value[k], depth + 1, k);
     }
     return out;
   }

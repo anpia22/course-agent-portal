@@ -6,17 +6,19 @@ import {
   ChevronRight, FileText, CheckCircle2, AlertCircle,
   X, MessageSquare, Bell, ArrowUpRight,
   Pencil, LayoutGrid, List, Shield, Clock, XCircle,
-  Check, Filter, RefreshCw, GraduationCap
+  Check, Filter, RefreshCw, GraduationCap, Briefcase
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { hasStaffRole } from '../../utils/staffRoles';
 import { toast } from 'sonner';
 import StudentRegistrationModal from '../../components/modals/StudentRegistrationModal';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import DocumentReviewDialog from '../../components/modals/DocumentReviewDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { studentVerificationAPI, formatApiError } from '../../utils/api';
-import { getStudentStageInfo, getStudentJourneyIndex, getStageLabel, STUDENT_JOURNEY } from '../../utils/studentProgress';
+import { studentVerificationAPI, agentAPI, formatApiError } from '../../utils/api';
+import { getStudentStageInfo, getStudentJourneyIndex, getStageLabel, STUDENT_JOURNEY, STUDENT_FUNNEL, VISA_SUBSTAGE_CHIPS, getFunnelKey } from '../../utils/studentProgress';
 import {
   STUDENT_VERIFICATION_STATUS,
   STUDENT_VERIFICATION_STATUS_LABELS
@@ -62,8 +64,20 @@ const StudentsPage = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  // Supervisory Account Manager filter (for leadership roles)
+  const [amFilter, setAmFilter] = useState(searchParams.get('am') || 'all');
+  const [accountManagers, setAccountManagers] = useState([]);
   // Which agent registered the student ('all' = everyone); ?agent=<id> pre-selects it
   const [agentFilter, setAgentFilter] = useState(searchParams.get('agent') || 'all');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [subStageFilter, setSubStageFilter] = useState('all');
+  const [visaPopupOpen, setVisaPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.staffRole !== 'account_manager') {
+      agentAPI.getAccountManagers?.().then(res => setAccountManagers(res.data || [])).catch(() => {});
+    }
+  }, [user?.staffRole]);
   const [countryFilter, setCountryFilter] = useState('all');
   // 'newest' keeps the order from the server; the others sort the master list
   const [sortMode, setSortMode] = useState('newest');
@@ -71,7 +85,24 @@ const StudentsPage = () => {
   const [docFilter, setDocFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const paramUni = searchParams.get('university') || '';
+  const paramCourse = searchParams.get('course') || '';
+  const paramAction = searchParams.get('action');
+
+  const [showAddModal, setShowAddModal] = useState(paramAction === 'register' || Boolean(paramUni || paramCourse));
+
+  const handleCloseModal = (open) => {
+    setShowAddModal(open);
+    if (!open && (paramUni || paramCourse || paramAction)) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('university');
+        next.delete('course');
+        next.delete('action');
+        return next;
+      }, { replace: true });
+    }
+  };
   const [displayMode, setDisplayMode] = useState('table');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -252,20 +283,43 @@ const StudentsPage = () => {
 
   const getAgentIdOf = (s) => s?.agentId?.id || s?.agentId?._id || s?.agentId || null;
 
-  // Agents that actually registered students, with how many each, for the agent filter
+  // Agents for the dropdown (scoped by Account Manager filter when set)
   const agentOptions = useMemo(() => {
     const counts = new Map();
     students.forEach(s => {
       const id = s?.agentId?.id || s?.agentId?._id || s?.agentId;
       if (id) counts.set(String(id), (counts.get(String(id)) || 0) + 1);
     });
-    return Array.from(counts.entries())
-      .map(([id, count]) => {
-        const a = agents.find(x => String(x.id || x._id) === id);
-        return { id, count, label: a ? (a.agencyName || a.name) : 'Unknown agent', sub: a?.agentCode };
+    const pool = amFilter === 'all'
+      ? agents
+      : agents.filter(a => String(a.accountManagerId || a.accountManager?.id || '') === String(amFilter));
+    return pool
+      .map(a => {
+        const id = String(a.id || a._id);
+        return {
+          id,
+          count: counts.get(id) || 0,
+          label: a.agencyName || a.name || 'Agent',
+          sub: a.agentCode
+        };
       })
       .sort((x, y) => x.label.localeCompare(y.label));
-  }, [students, agents]);
+  }, [students, agents, amFilter]);
+
+  // Selected agent object (for cascade student dropdown and bottom-right summary card)
+  const selectedAgentObj = useMemo(() => {
+    if (!agentFilter || agentFilter === 'all' || agentFilter === 'direct') return null;
+    return agents.find(a => String(a.id || a._id) === String(agentFilter)) || null;
+  }, [agents, agentFilter]);
+
+  // Cascade student dropdown options for the selected agent (latest students on top)
+  const cascadeStudents = useMemo(() => {
+    if (!selectedAgentObj) return [];
+    const aid = String(selectedAgentObj.id || selectedAgentObj._id);
+    return students
+      .filter(s => String(getAgentIdOf(s)) === aid)
+      .sort((a, b) => new Date(b.createdAt || b.submittedAt || 0) - new Date(a.createdAt || a.submittedAt || 0));
+  }, [students, selectedAgentObj]);
 
   const getAgentName = (agentId) => {
     if (!agentId) return 'Admin / Direct';
@@ -277,8 +331,15 @@ const StudentsPage = () => {
   // Derived Data & Filtering
   const baseFilteredStudents = useMemo(() => {
     const matches = students.filter(s => {
+      if (amFilter !== 'all') {
+        const aid = getAgentIdOf(s);
+        const ag = agents.find(x => String(x.id || x._id) === String(aid));
+        if (!ag || String(ag.accountManagerId || ag.accountManager?.id || '') !== String(amFilter)) return false;
+      }
       if (agentFilter === 'direct' && getAgentIdOf(s)) return false;
       if (agentFilter !== 'all' && agentFilter !== 'direct' && String(getAgentIdOf(s)) !== String(agentFilter)) return false;
+      if (stageFilter !== 'all' && getFunnelKey(s) !== stageFilter) return false;
+      if (subStageFilter !== 'all' && (s.pipelineStage || 'Application') !== subStageFilter) return false;
       const name = getStudentName(s).toLowerCase();
       const cf = s.customFields || {};
       const email = (s.email || cf.email || (cf instanceof Map ? cf.get('email') : '') || '').toLowerCase();
@@ -306,7 +367,23 @@ const StudentsPage = () => {
     }[sortMode];
     return [...matches].sort((a, b) => String(keyOf(a)).localeCompare(String(keyOf(b)), undefined, { sensitivity: 'base' }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [students, agentFilter, searchQuery, countryFilter, universityFilter, docFilter, verificationFilter, sortMode, getDocStatus, getUniversityName]);
+  }, [students, agents, amFilter, agentFilter, stageFilter, subStageFilter, searchQuery, countryFilter, universityFilter, docFilter, verificationFilter, sortMode, getDocStatus, getUniversityName]);
+
+  const funnelCounts = useMemo(() => {
+    const counts = { all: students.length };
+    STUDENT_FUNNEL.forEach(g => {
+      counts[g.key] = students.filter(s => getFunnelKey(s) === g.key).length;
+    });
+    return counts;
+  }, [students]);
+
+  const subStageCounts = useMemo(() => {
+    const counts = {};
+    VISA_SUBSTAGE_CHIPS.forEach(ch => {
+      counts[ch.key] = students.filter(s => (s.pipelineStage || 'Application') === ch.key).length;
+    });
+    return counts;
+  }, [students]);
 
   const filteredStudents = baseFilteredStudents;
 
@@ -475,66 +552,171 @@ const StudentsPage = () => {
         </button>
       </div>
 
-      {/* Search and agent filter apply to both views */}
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
-          <input
-            type="text"
-            placeholder="Search by student name, email, or phone…"
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#D1D5DB] outline-none focus:border-[#042C53] focus:ring-2 focus:ring-[#042C53]/5 transition-all bg-white"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <select
-          className={cn(
-            "text-xs font-semibold px-3 py-2 rounded-lg border bg-white min-w-[200px] flex-1 sm:flex-none outline-none",
-            agentFilter !== 'all' ? "border-[#042C53] text-[#042C53]" : "border-[#D1D5DB]"
-          )}
-          value={agentFilter}
-          onChange={(e) => setAgentFilter(e.target.value)}
-          title="Show only students registered by this agent"
-        >
-          <option value="all">All Agents</option>
-          <option value="direct">Admin / Direct</option>
-          {agentOptions.map(a => (
-            <option key={a.id} value={a.id}>{a.label}{a.sub ? ` (${a.sub})` : ''} · {a.count}</option>
-          ))}
-        </select>
-        {agentFilter !== 'all' && (
-          <button
-            onClick={() => setAgentFilter('all')}
-            className="text-xs text-slate-500 hover:text-slate-800 underline"
-          >
-            Clear agent
-          </button>
-        )}
-      </div>
-
       {activeTab === 'all' ? (
         <>
-          {/* KPI Row */}
-          <div className="stat-grid grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-            {[
-              { label: 'Total Students', val: kpis.total, sub: 'Global reach', color: '#0C447C' },
-              { label: 'Verified Students', val: kpis.verifiedStudents, sub: `${kpis.verifiedPerc}% verified`, color: '#085041' },
-              { label: 'Pending Verification', val: kpis.unverifiedStudents, sub: 'Requires review', color: '#EF9F27' },
-              { label: 'Missing Docs', val: kpis.missingDocs, sub: 'Incomplete documents', color: '#791F1F' },
-              { label: 'Doc Pending', val: kpis.pendingDocs, sub: 'Needs verification', color: '#3C3489' }
-            ].map((kpi, i) => (
-              <div key={i} className="bg-white border border-[#E5E7EB] rounded-xl p-4 shadow-sm">
-                <div className="text-[10px] text-[#6B7280] mb-1.5 uppercase font-bold tracking-wider">{kpi.label}</div>
-                <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{kpi.val.toLocaleString()}</div>
-                <div className="text-[10px] mt-1 font-semibold" style={{ color: kpi.color }}>{kpi.sub}</div>
+          {/* Single Row of Pipeline Cards (All Students -> Application -> Offer Letter Issued -> Fees Paid -> Visa in Process -> Visa 100%) */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div
+              onClick={() => { setStageFilter('all'); setSubStageFilter('all'); }}
+              className={cn(
+                'cursor-pointer p-4 rounded-xl border transition-all bg-white',
+                stageFilter === 'all' && subStageFilter === 'all'
+                  ? 'border-[#378ADD] shadow-sm ring-1 ring-[#378ADD]/20'
+                  : 'border-[#E5E7EB] hover:border-slate-300'
+              )}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">All Students</span>
+              </div>
+              <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{funnelCounts.all}</div>
+              <div className="text-xs text-[#6B7280] mt-1">All registrations</div>
+            </div>
+            {STUDENT_FUNNEL.map(group => (
+              <div
+                key={group.key}
+                onClick={() => {
+                  setStageFilter(group.key);
+                  setSubStageFilter('all');
+                  if (group.key === 'InVisa') setVisaPopupOpen(true);
+                }}
+                className={cn(
+                  'cursor-pointer p-4 rounded-xl border transition-all bg-white',
+                  stageFilter === group.key
+                    ? 'border-[#378ADD] shadow-sm ring-1 ring-[#378ADD]/20'
+                    : 'border-[#E5E7EB] hover:border-slate-300'
+                )}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
+                  <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">{group.label}</span>
+                </div>
+                <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{funnelCounts[group.key] || 0}</div>
+                <div className="text-xs text-[#6B7280] mt-1">{group.hint}</div>
               </div>
             ))}
           </div>
 
-          {/* Controls Bar */}
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
+          {subStageFilter !== 'all' && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs text-[#4B5563]">
+                Filtered by stage: <strong className="text-[#042C53]">{VISA_SUBSTAGE_CHIPS.find(c => c.key === subStageFilter)?.label || subStageFilter}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSubStageFilter('all')}
+                className="text-xs font-semibold text-rose-600 hover:underline"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
+
+          {/* Pop-up for Visa in Process Details */}
+          <Dialog open={visaPopupOpen} onOpenChange={setVisaPopupOpen}>
+            <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+              <DialogHeader className="px-6 pt-6 pb-4 border-b border-[#E5E7EB] space-y-1">
+                <DialogTitle className="font-['Outfit'] text-lg">Visa in process</DialogTitle>
+                <DialogDescription>Select a visa stage to filter students or view stage numbers</DialogDescription>
+              </DialogHeader>
+              <div className="px-6 py-5 max-h-[65vh] overflow-y-auto">
+                <ul className="space-y-3">
+                  {VISA_SUBSTAGE_CHIPS.map((chip) => {
+                    const cnt = subStageCounts[chip.key] || 0;
+                    const active = subStageFilter === chip.key;
+                    return (
+                      <li key={chip.key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStageFilter('all');
+                            setSubStageFilter(active ? 'all' : chip.key);
+                            setVisaPopupOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all',
+                            active
+                              ? 'bg-[#042C53] text-white border-[#042C53]'
+                              : 'bg-slate-50 hover:bg-white text-[#374151] border-[#E5E7EB] hover:border-[#042C53]'
+                          )}
+                        >
+                          <span>{chip.label}</span>
+                          <span className={cn('font-bold tabular-nums', active ? 'text-white' : 'text-[#111827]')}>{cnt}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Single Unified Search & Filter Bar */}
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
+            <div className="relative flex-1 min-w-[260px]">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+              <input
+                type="text"
+                placeholder="Search by student name, email, or phone…"
+                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-[#E5E7EB] outline-none focus:border-[#042C53] focus:ring-2 focus:ring-[#042C53]/5 transition-all bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {user?.staffRole !== 'account_manager' && accountManagers.length > 0 && (
+              <select
+                className={cn(
+                  "text-xs font-semibold px-3 py-2.5 rounded-xl border bg-white outline-none",
+                  amFilter !== 'all' ? "border-[#534AB7] text-[#534AB7] bg-[#EEEDFE]/30" : "border-[#E5E7EB]"
+                )}
+                value={amFilter}
+                onChange={(e) => { setAmFilter(e.target.value); setAgentFilter('all'); }}
+                title="Filter by Account Manager"
+              >
+                <option value="all">All Account Managers</option>
+                {accountManagers.map(am => (
+                  <option key={am.id} value={am.id}>AM: {am.name}</option>
+                ))}
+              </select>
+            )}
+
             <select
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-[#D1D5DB] bg-white min-w-[150px] flex-1 sm:flex-none outline-none"
+              className={cn(
+                "text-xs font-semibold px-3 py-2.5 rounded-xl border bg-white outline-none",
+                agentFilter !== 'all' ? "border-[#042C53] text-[#042C53]" : "border-[#E5E7EB]"
+              )}
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              title="Select agent to filter students"
+            >
+              <option value="all">{ user?.staffRole === 'account_manager' ? 'My Assigned Agents (All)' : 'All Agents' }</option>
+              {user?.staffRole !== 'account_manager' && <option value="direct">Admin / Direct</option>}
+              {agentOptions.map(a => (
+                <option key={a.id} value={a.id}>{a.label}{a.sub ? ` (${a.sub})` : ''} · {a.count}</option>
+              ))}
+            </select>
+
+            {selectedAgentObj && (
+              <select
+                className="text-xs font-semibold px-3 py-2.5 rounded-xl border border-[#042C53] bg-[#E6F1FB]/40 text-[#042C53] outline-none"
+                value={selectedStudentId || ''}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedStudentId(e.target.value);
+                }}
+                title="Students of selected agent (latest on top)"
+              >
+                <option value="">Jump to Student ({cascadeStudents.length})…</option>
+                {cascadeStudents.map(cs => (
+                  <option key={cs.id || cs._id} value={cs.id || cs._id}>
+                    {getStudentName(cs)} — {getStudentStageInfo(cs).label}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <select
+              className="text-xs font-semibold px-3 py-2.5 rounded-xl border border-[#E5E7EB] bg-white outline-none"
               value={universityFilter}
               onChange={(e) => setUniversityFilter(e.target.value)}
             >
@@ -543,40 +725,21 @@ const StudentsPage = () => {
                 <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>
               ))}
             </select>
+
             <select
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-[#D1D5DB] bg-white min-w-[130px] flex-1 sm:flex-none outline-none"
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value)}
-              aria-label="Sort students"
-            >
-              <option value="newest">Newest first</option>
-              <option value="name">Name A-Z</option>
-              <option value="agent">Agent A-Z</option>
-              <option value="country">Country A-Z</option>
-            </select>
-            <select
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-[#D1D5DB] bg-white min-w-[130px] flex-1 sm:flex-none outline-none"
-              value={countryFilter}
-              onChange={(e) => setCountryFilter(e.target.value)}
-            >
-              <option value="all">All Countries</option>
-              {uniqueCountries.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <select
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-[#D1D5DB] bg-white min-w-[150px] flex-1 sm:flex-none outline-none"
+              className="text-xs font-semibold px-3 py-2.5 rounded-xl border border-[#E5E7EB] bg-white outline-none"
               value={verificationFilter}
               onChange={(e) => setVerificationFilter(e.target.value)}
             >
               <option value="all">All Verification</option>
-              <option value="Pending">Pending Verification</option>
+              <option value="Pending">Pending</option>
               <option value="UnderReview">Under Review</option>
               <option value="Verified">Verified</option>
               <option value="Rejected">Rejected</option>
             </select>
+
             <select
-              className="text-xs font-semibold px-3 py-2 rounded-lg border border-[#D1D5DB] bg-white min-w-[120px] flex-1 sm:flex-none outline-none"
+              className="text-xs font-semibold px-3 py-2.5 rounded-xl border border-[#E5E7EB] bg-white outline-none"
               value={docFilter}
               onChange={(e) => setDocFilter(e.target.value)}
             >
@@ -586,7 +749,7 @@ const StudentsPage = () => {
               <option value="missing">Missing</option>
             </select>
 
-            <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
+            <div className="flex bg-white border border-[#E5E7EB] rounded-xl p-1 gap-1">
               <button
                 onClick={() => setDisplayMode('table')}
                 className={cn(
@@ -612,25 +775,24 @@ const StudentsPage = () => {
 
           {/* Table / Grid View */}
           {displayMode === 'table' ? (
-            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm mb-6">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[20%]">Student</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[12%]">University</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[10%]">Country</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[11%]">Pipeline</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[12%]">Verification</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[9%]">Documents</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[9%]">Agent</th>
-                    <th className="text-[10px] text-[#6B7280] font-bold px-4 py-3 text-left uppercase tracking-wider w-[9%]">Registered</th>
-                    <th className="w-[5%]"></th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Student</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Course & University</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Pipeline Stage</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Verification</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Documents</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Agent</th>
+                    <th className="text-[11px] text-[#6B7280] font-bold px-5 py-3.5 text-left uppercase tracking-wider">Registered</th>
+                    <th className="w-[60px]"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredStudents.length === 0 ? (
                     <tr>
-                      <td colSpan="9" className="text-center py-16 text-[#6B7280]">
+                      <td colSpan="8" className="text-center py-16 text-[#6B7280]">
                         <User size={48} className="mx-auto mb-4 opacity-20" />
                         <p className="font-semibold text-sm">No students match the current filters</p>
                       </td>
@@ -645,54 +807,60 @@ const StudentsPage = () => {
                           className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB] cursor-pointer transition-colors"
                           onClick={() => setSelectedStudentId(s.id || s._id)}
                         >
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[#E6F1FB] text-[#0C447C] shrink-0">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold bg-[#E6F1FB] text-[#0C447C] shrink-0">
                                 {getInitials(getStudentName(s))}
                               </div>
                               <div className="min-w-0">
                                 <div className="font-bold text-[#111827] truncate">{getStudentName(s)}</div>
-                                <div className="text-[10px] text-[#6B7280] truncate">{getStudentValue(s, 'email', 'Email Address') !== 'N/A' ? getStudentValue(s, 'email', 'Email Address') : 'No email'}</div>
+                                <div className="text-[11px] text-[#6B7280] truncate">{getStudentValue(s, 'email', 'Email Address') !== 'N/A' ? getStudentValue(s, 'email', 'Email Address') : 'No email'}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 text-xs truncate max-w-[130px] font-medium text-slate-700" title={getUniversityName(s)}>
-                            {getUniversityName(s)}
+                          <td className="px-5 py-4">
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-[#111827] truncate">
+                                {s.applications?.[0]?.courseName || s.courseInterested || 'General Admission'}
+                              </div>
+                              <div className="text-[11px] text-[#6B7280] truncate mt-0.5">
+                                {getUniversityName(s)}
+                              </div>
+                            </div>
                           </td>
-                          <td className="px-4 py-3.5 text-xs">{getStudentValue(s, 'country', 'Country of Interest')}</td>
-                          <td className="px-4 py-3.5">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${getStudentStageInfo(s).style}`}>
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap ${getStudentStageInfo(s).style}`}>
                               {getStudentStageInfo(s).label}
                             </span>
                           </td>
-                          <td className="px-4 py-3.5">
+                          <td className="px-5 py-4 whitespace-nowrap">
                             {getVerificationBadge(verStatus)}
                           </td>
-                          <td className="px-4 py-3.5">
-                            {docStatus === 'complete' && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-[#EAF3DE] text-[#27500A]">Complete</span>}
-                            {docStatus === 'missing' && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
-                            {docStatus === 'pending' && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-[#FAEEDA] text-[#633806]">Pending</span>}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            {docStatus === 'complete' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider bg-[#EAF3DE] text-[#27500A]">Complete</span>}
+                            {docStatus === 'missing' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
+                            {docStatus === 'pending' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider bg-[#FAEEDA] text-[#633806]">Pending</span>}
                           </td>
-                          <td className="px-4 py-3.5 text-xs truncate max-w-[140px]" title={getAgentName(s.agentId)}>
+                          <td className="px-5 py-4 text-xs whitespace-nowrap" title={getAgentName(s.agentId)}>
                             <button
-                              className={cn("font-semibold hover:underline text-left truncate max-w-full", getAgentIdOf(s) ? "text-[#042C53]" : "text-slate-500")}
+                              className={cn("font-semibold hover:underline text-left truncate max-w-[150px]", getAgentIdOf(s) ? "text-[#042C53]" : "text-slate-500")}
                               onClick={(e) => { e.stopPropagation(); setAgentFilter(getAgentIdOf(s) ? String(getAgentIdOf(s)) : 'direct'); }}
                               title="Show only this agent's students"
                             >
                               {getAgentName(s.agentId)}
                             </button>
                           </td>
-                          <td className="px-4 py-3.5 text-xs text-[#6B7280]">{new Date(s.createdAt || s.submittedAt).toLocaleDateString()}</td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="px-5 py-4 text-xs text-[#6B7280] whitespace-nowrap">{new Date(s.createdAt || s.submittedAt).toLocaleDateString()}</td>
+                          <td className="px-5 py-4 text-right">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/admin/students/${s.id || s._id}`);
                               }}
-                              className="w-7 h-7 rounded-lg border border-[#D1D5DB] flex items-center justify-center text-[#6B7280] hover:text-[#042C53] hover:border-[#042C53] transition-all"
+                              className="w-8 h-8 rounded-lg border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#042C53] hover:border-[#042C53] transition-all"
                               title="View student profile"
                             >
-                              <ChevronRight size={14} />
+                              <ChevronRight size={15} />
                             </button>
                           </td>
                         </tr>
@@ -1045,6 +1213,52 @@ const StudentsPage = () => {
               </div>
             )}
 
+            {/* Associated Applications & Course Status */}
+            <div className="mb-6 p-4 rounded-xl border border-gray-200 bg-[#F9FAFB]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Briefcase size={12} className="text-[#042C53]" />
+                  Associated Applications
+                </span>
+                <span className="text-[10px] font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-full">
+                  {selectedStudent.applications?.length || 0} Total
+                </span>
+              </div>
+
+              {selectedStudent.applications && selectedStudent.applications.length > 0 ? (
+                <div className="space-y-2.5">
+                  {selectedStudent.applications.map(app => (
+                    <div key={app.id || app._id} className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+                      <div className="min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[10px] font-mono font-bold text-[#042C53] bg-[#E6F1FB] px-1.5 py-0.2 rounded">
+                            {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 rounded bg-blue-50 text-blue-700">
+                            {app.pipelineStage || app.status || 'Submitted'}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold text-[#111827] truncate">
+                          {app.courseName || selectedStudent.courseInterested || 'Course'}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {app.university?.name || getUniversityName(selectedStudent)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/admin/applications/${app.id || app._id}`)}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#042C53] text-white hover:bg-[#0C447C] transition-all shrink-0 flex items-center gap-1"
+                      >
+                        Details <ArrowUpRight size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">No applications linked yet.</p>
+              )}
+            </div>
+
             <div className="text-xs font-bold text-[#111827] uppercase tracking-widest mb-4 font-['Outfit']">Journey Progress</div>
             <div className="flex items-start mb-6">
               {STUDENT_JOURNEY.map((stage, idx) => {
@@ -1206,10 +1420,80 @@ const StudentsPage = () => {
         onConfirm={(remarks) => submitDocumentReview(reviewDialog.studentId, reviewDialog.docId, reviewDialog.status, remarks)}
       />
 
+      {/* Bottom-Right Selected Agent Profile Summary Card (Account Manager / Admin Workspace) */}
+      {selectedAgentObj && !selectedStudent && (
+        <div
+          className="fixed bottom-5 right-5 z-40 w-80 rounded-2xl border border-[#042C53]/20 bg-white shadow-xl p-4 animate-in slide-in-from-bottom-4 duration-300"
+          data-testid="am-agent-summary-widget"
+        >
+          <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AgencyLogo agent={selectedAgentObj} size="sm" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#E6F1FB] text-[#0C447C] font-mono">
+                    {selectedAgentObj.agentCode || 'PARTNER'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {cascadeStudents.length} {cascadeStudents.length === 1 ? 'Student' : 'Students'}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-[#111827] font-['Outfit'] truncate mt-1">
+                  {selectedAgentObj.agencyName || selectedAgentObj.name}
+                </h4>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAgentFilter('all')}
+              className="text-slate-400 hover:text-slate-700 p-1 rounded"
+              title="Close agent summary"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div className="py-2.5 space-y-1.5 text-xs text-slate-600">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">PIC:</span>
+              <span className="font-semibold text-slate-800 truncate max-w-[180px]">{selectedAgentObj.contactPerson || selectedAgentObj.name}</span>
+            </div>
+            {selectedAgentObj.phone && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Phone / WhatsApp:</span>
+                <span className="font-medium text-slate-800">{selectedAgentObj.phone}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Country:</span>
+              <span className="font-medium text-slate-800">{selectedAgentObj.country || '—'}</span>
+            </div>
+          </div>
+          <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/agents/${selectedAgentObj.id || selectedAgentObj._id}`)}
+              className="flex-1 py-1.5 px-2.5 rounded-lg bg-[#042C53] hover:bg-[#0C447C] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+            >
+              Agent Profile <ArrowUpRight size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/chat')}
+              className="py-1.5 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1 transition-colors"
+            >
+              <MessageSquare size={12} /> Chat
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Student Registration Modal */}
       <StudentRegistrationModal
         open={showAddModal}
-        onOpenChange={setShowAddModal}
+        onOpenChange={handleCloseModal}
+        defaultUniversityId={paramUni}
+        defaultCourseId={paramCourse}
+        onSuccess={fetchStudents}
       />
     </div>
   );

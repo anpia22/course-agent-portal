@@ -52,7 +52,9 @@ const CommissionsPage = () => {
   // Changes saved on this page, applied over the loaded list
   const [saved, setSaved] = useState({});
   const universities = useMemo(
-    () => loaded.map((u) => (u.id in saved ? { ...u, ...saved[u.id] } : u)),
+    () => loaded
+      .filter((u) => !u.country || u.country.trim().toLowerCase() === 'malaysia')
+      .map((u) => (u.id in saved ? { ...u, ...saved[u.id] } : u)),
     [loaded, saved]
   );
   const [search, setSearch] = useState('');
@@ -64,7 +66,7 @@ const CommissionsPage = () => {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return universities
-      .filter((u) => !term || (u.name || '').toLowerCase().includes(term))
+      .filter((u) => !term || (u.name || '').toLowerCase().includes(term) || (u.code || '').toLowerCase().includes(term))
       .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   }, [universities, search]);
 
@@ -114,15 +116,15 @@ const CommissionsPage = () => {
         <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Commission</h1>
         <p className="text-sm text-[#6B7280] mt-1.5">
           {canEdit
-            ? 'What each university pays agents: a percentage of the tuition, or a fixed amount per student.'
-            : 'What you earn for each student, by university.'}
+            ? 'What each Malaysian partner university pays agents: a percentage of the tuition, or a fixed amount per student.'
+            : 'What you earn for each student, by assigned Malaysian university.'}
         </p>
       </div>
 
       <div className="relative max-w-sm">
         <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2" />
         <Input
-          placeholder="Search university"
+          placeholder="Search Malaysian university..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10 h-11 bg-white"
@@ -135,24 +137,24 @@ const CommissionsPage = () => {
             <TableHeader>
               <TableRow className="bg-[#F9FAFB] hover:bg-[#F9FAFB]">
                 <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">University</TableHead>
-                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Country</TableHead>
+                <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">City</TableHead>
                 <TableHead className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Commission</TableHead>
                 {canEdit && <TableHead className="px-6 py-4 w-20"><span className="sr-only">Edit</span></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-[#6B7280] py-10">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 4 : 3} className="text-center text-sm text-[#6B7280] py-10">Loading...</TableCell></TableRow>
               )}
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-sm text-[#6B7280] py-10">No universities found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 4 : 3} className="text-center text-sm text-[#6B7280] py-10">No Malaysian universities found</TableCell></TableRow>
               )}
               {rows.map((u) => {
                 const text = describeCommission(u);
                 return (
                   <TableRow key={u.id}>
                     <TableCell className="px-6 py-4 font-medium text-[#111827]">{u.name}</TableCell>
-                    <TableCell className="px-6 py-4 text-[#4B5563]">{u.country || '-'}</TableCell>
+                    <TableCell className="px-6 py-4 text-[#4B5563]">{u.city || 'Malaysia'}</TableCell>
                     <TableCell className="px-6 py-4">
                       {text ? (
                         <span className="inline-flex items-center rounded-full bg-[#EAF3DE] px-3 py-1 text-xs font-semibold text-[#27500A]">{text}</span>

@@ -1,6 +1,6 @@
 // Invoice stages from the client workflow:
 //   Submitted (agent raised it, being reviewed) -> Processing (approved by the Head of Admission,
-//   waiting for the university to pay QStudy and for Accounts to pay the agent) -> Paid & Recorded.
+//   waiting for the university to pay QStudy and for Accounts/Finance to pay the agent) -> Paid & Recorded.
 // Every invoice is in exactly one stage, so moving one on lowers one count and raises the next.
 
 export const INVOICE_STAGES = ['Submitted', 'Processing', 'UniversityPaid', 'Paid', 'Amendment'];
@@ -8,7 +8,7 @@ export const INVOICE_STAGES = ['Submitted', 'Processing', 'UniversityPaid', 'Pai
 export const INVOICE_STAGE_INFO = {
   Submitted: { label: 'Invoice submitted', style: 'bg-[#E6F1FB] text-[#0C447C]' },
   Processing: { label: 'Invoice processing', style: 'bg-[#FAEEDA] text-[#633806]' },
-  UniversityPaid: { label: 'University payment received', style: 'bg-[#EEEDFE] text-[#3C3489]' },
+  UniversityPaid: { label: 'University paid', style: 'bg-[#EEEDFE] text-[#3C3489]' },
   Paid: { label: 'Invoice paid', style: 'bg-[#EAF3DE] text-[#27500A]' },
   Amendment: { label: 'Needs amendment', style: 'bg-[#FAEEDA] text-[#633806]' },
 };
@@ -41,7 +41,7 @@ export const getPayoffPaymentState = (payoff) => {
 
 export const PAYOFF_PAYMENT_STATE_INFO = {
   AwaitingUniversity: { label: 'Awaiting university payment', style: 'bg-[#FAEEDA] text-[#633806]' },
-  UniversityPaid: { label: 'University paid - ready to pay agent', style: 'bg-[#E6F1FB] text-[#0C447C]' },
+  UniversityPaid: { label: 'Release Payment to Agent After University Clearance', style: 'bg-[#E6F1FB] text-[#0C447C]' },
   ExceptionAuthorized: { label: 'Exception authorized', style: 'bg-[#EEEDFE] text-[#3C3489]' },
   Settled: { label: 'Paid', style: 'bg-[#EAF3DE] text-[#27500A]' },
   Cancelled: { label: 'Cancelled', style: 'bg-[#F3F4F6] text-[#4B5563]' },

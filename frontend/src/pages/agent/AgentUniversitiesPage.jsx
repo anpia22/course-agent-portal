@@ -4,7 +4,6 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import {
   Building2,
   Search,
-  Globe,
   MapPin,
   ChevronLeft,
   ChevronRight,
@@ -15,7 +14,8 @@ import {
   Megaphone,
   LayoutGrid,
   List,
-  ArrowUpRight
+  ArrowUpRight,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -24,15 +24,7 @@ import UniversityLogo from '../../components/university/UniversityLogo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { cn } from '../../lib/utils';
 import { Card, CardContent } from '../../components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '../../components/ui/select';
 import { universityAPI, formatApiError } from '../../utils/api';
-import { countries } from '../../lib/countries';
 import { toast } from 'sonner';
 
 const VIEW_KEY = 'agentUniversitiesView';
@@ -64,13 +56,11 @@ const AgentUniversitiesPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(12);
-  const [stats, setStats] = useState({ active: 0, countries: 0 });
+  const [stats, setStats] = useState({ active: 0 });
 
-  // Filters
+  // Filters (Strictly Malaysian universities)
   const [searchQuery, setSearchQuery] = useState('');
-  const [countryFilter, setCountryFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
-  // The API only sees the settled text; requestIdRef drops responses from superseded requests
   const [debouncedSearch, flushSearch] = useDebouncedValue(searchQuery);
   const [debouncedCity, flushCity] = useDebouncedValue(cityFilter);
   const requestIdRef = useRef(0);
@@ -83,13 +73,12 @@ const AgentUniversitiesPage = () => {
       const params = {
         page,
         limit,
-        envelope: 'true'
+        envelope: 'true',
+        status: 'active',
+        country: 'Malaysia'
       };
 
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
-      // An inactive university cannot take new applications, so agents only browse the active ones
-      params.status = 'active';
-      if (countryFilter && countryFilter !== 'all') params.country = countryFilter;
       if (debouncedCity.trim()) params.city = debouncedCity.trim();
 
       const response = await universityAPI.getAll(params);
@@ -101,7 +90,7 @@ const AgentUniversitiesPage = () => {
         setTotalCount(data.total || 0);
         setTotalPages(data.totalPages || 1);
         setCurrentPage(data.page || 1);
-        if (data.stats) setStats({ active: data.stats.active, countries: data.stats.countries });
+        if (data.stats) setStats({ active: data.stats.active });
       } else if (Array.isArray(data)) {
         setUniversities(data);
         const countHeader = response.headers['x-total-count'];
@@ -117,7 +106,7 @@ const AgentUniversitiesPage = () => {
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [debouncedSearch, countryFilter, debouncedCity, limit]);
+  }, [debouncedSearch, debouncedCity, limit]);
 
   useEffect(() => {
     loadUniversities(1);
@@ -132,12 +121,11 @@ const AgentUniversitiesPage = () => {
   const handleResetFilters = () => {
     setSearchQuery('');
     flushSearch('');
-    setCountryFilter('all');
     setCityFilter('');
     flushCity('');
   };
 
-  const hasFilters = searchQuery || countryFilter !== 'all' || cityFilter;
+  const hasFilters = Boolean(searchQuery || cityFilter);
 
   return (
     <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="agent-universities-page">
@@ -145,19 +133,24 @@ const AgentUniversitiesPage = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">
-            Partner Universities
+            Malaysian Partner Universities
           </h1>
           <p className="text-xs text-gray-500 mt-1 font-medium">
-            Pick where to send your student. See the programs and the brochures, then apply.
+            Browse assigned Malaysian institutions, inspect programs, scholarships, and brochures, then apply directly.
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-600">
           <span className="bg-white border border-gray-200 px-3 py-2 rounded-lg font-medium">
-            <span className="font-bold text-[#042C53]">{stats.active}</span> universities
+            <span className="font-bold text-[#042C53]">{totalCount || stats.active}</span> Malaysian universities
           </span>
-          <span className="bg-white border border-gray-200 px-3 py-2 rounded-lg font-medium">
-            <span className="font-bold text-[#042C53]">{stats.countries}</span> countries
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/agent/programs')}
+            className="h-9 text-xs font-semibold border-gray-200 text-[#042C53] gap-1.5"
+          >
+            <BookOpen size={14} /> Filter by Course & Level
+          </Button>
         </div>
       </div>
 
@@ -170,29 +163,16 @@ const AgentUniversitiesPage = () => {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by university name, code or city..."
+                placeholder="Search Malaysian university by name or code..."
                 className="pl-9 text-xs bg-[#F9FAFB] border-gray-200"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger className="w-full sm:w-[170px] text-xs bg-[#F9FAFB] border-gray-200">
-                  <SelectValue placeholder="Country" />
-                </SelectTrigger>
-                <SelectContent className="max-h-56">
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {countries.map((c) => (
-                    <SelectItem key={c.code} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Input
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-                placeholder="City"
-                className="w-[120px] text-xs bg-[#F9FAFB] border-gray-200"
+                placeholder="City / State (e.g. Kuala Lumpur)"
+                className="w-[210px] text-xs bg-[#F9FAFB] border-gray-200"
               />
               <Button type="submit" size="sm" className="bg-[#042C53] hover:bg-[#0C447C] text-xs h-9 px-4">
                 Search
@@ -210,7 +190,7 @@ const AgentUniversitiesPage = () => {
       {/* Grid or list */}
       {!loading && universities.length > 0 && (
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-500">{totalCount} {totalCount === 1 ? 'university' : 'universities'}</p>
+          <p className="text-xs text-gray-500">{totalCount} {totalCount === 1 ? 'university' : 'universities'} in Malaysia</p>
           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5" role="group" aria-label="Change layout">
             {[
               { key: 'grid', label: 'Grid', Icon: LayoutGrid },
@@ -237,15 +217,15 @@ const AgentUniversitiesPage = () => {
       {loading ? (
         <div className="text-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#042C53] mx-auto"></div>
-          <p className="text-xs text-gray-500 mt-3 font-medium">Loading universities...</p>
+          <p className="text-xs text-gray-500 mt-3 font-medium">Loading Malaysian universities...</p>
         </div>
       ) : universities.length === 0 ? (
         <Card className="border-[#E5E7EB] bg-white shadow-none">
           <CardContent className="text-center py-16 text-gray-500">
             <Building2 size={40} className="mx-auto mb-3 opacity-20" />
-            <p className="font-semibold text-sm text-gray-700">No universities found</p>
+            <p className="font-semibold text-sm text-gray-700">No Malaysian universities found</p>
             <p className="text-xs text-gray-400 mt-1">
-              {hasFilters ? 'Try a different search or clear the filters.' : 'No universities are available to you yet. Contact your Account Manager.'}
+              {hasFilters ? 'Try a different search or clear the filters.' : 'No universities are assigned to your account yet. Contact your Account Manager.'}
             </p>
           </CardContent>
         </Card>
@@ -255,7 +235,7 @@ const AgentUniversitiesPage = () => {
             <TableHeader>
               <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
                 <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider whitespace-nowrap">University</TableHead>
-                <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider whitespace-nowrap">Location</TableHead>
+                <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider whitespace-nowrap">City (Malaysia)</TableHead>
                 <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider text-center whitespace-nowrap">Programs</TableHead>
                 <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider text-center whitespace-nowrap">Brochures</TableHead>
                 <TableHead className="text-[10px] text-[#6B7280] font-bold px-5 py-3 uppercase tracking-wider whitespace-nowrap">Good to know</TableHead>
@@ -282,7 +262,7 @@ const AgentUniversitiesPage = () => {
                   <TableCell className="px-5 py-3 text-xs font-medium text-gray-800 whitespace-nowrap">
                     <span className="flex items-center gap-1.5">
                       <MapPin size={12} className="text-gray-400 shrink-0" />
-                      {uni.city ? `${uni.city}, ` : ''}{uni.country}
+                      {uni.city ? `${uni.city}, ` : ''}Malaysia
                     </span>
                   </TableCell>
                   <TableCell className="px-5 py-3 text-center text-sm font-bold text-[#042C53] tabular-nums">{uni.programCount ?? 0}</TableCell>
@@ -313,7 +293,7 @@ const AgentUniversitiesPage = () => {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => navigate(`/agent/applications?university=${uni.id}`)}
+                        onClick={() => navigate(`/agent/students?action=register&university=${uni.id}`)}
                         className="text-xs h-8 bg-[#042C53] hover:bg-[#0C447C] text-white"
                       >
                         Apply <ArrowRight size={12} className="ml-1" />
@@ -331,8 +311,8 @@ const AgentUniversitiesPage = () => {
             const brochureCount = (uni.brochures || []).length;
             const newsCount = (uni.updateCount || 0) - (uni.scholarshipCount || 0);
             const pills = [
-              { label: uni.city || uni.country, icon: MapPin },
-              { label: uni.code ? `Code: ${uni.code}` : uni.country, icon: Building2 },
+              { label: uni.city || 'Malaysia', icon: MapPin },
+              { label: uni.code ? `Code: ${uni.code}` : 'Malaysia', icon: Building2 },
               { label: `${uni.programCount ?? 0} ${uni.programCount === 1 ? 'program' : 'programs'}`, icon: GraduationCap },
               { label: `${brochureCount} ${brochureCount === 1 ? 'brochure' : 'brochures'}`, icon: FileText },
               { label: uni.scholarshipCount > 0 ? `${uni.scholarshipCount} ${uni.scholarshipCount === 1 ? 'scholarship' : 'scholarships'}` : `${newsCount > 0 ? newsCount : 0} news`, icon: uni.scholarshipCount > 0 ? Award : Megaphone, tone: uni.scholarshipCount > 0 ? 'good' : undefined },
@@ -351,7 +331,7 @@ const AgentUniversitiesPage = () => {
                 >
                   <div className="absolute top-4 left-4 flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 bg-white text-[#111827] text-xs font-semibold px-3 py-1.5 rounded-full">
-                      <GraduationCap size={13} /> University
+                      <GraduationCap size={13} /> Malaysia
                     </span>
                     {uni.scholarshipCount > 0 && (
                       <span className="inline-flex items-center gap-1.5 bg-[#FFF1C9] text-[#7A4B00] text-xs font-semibold px-3 py-1.5 rounded-full">
@@ -367,7 +347,7 @@ const AgentUniversitiesPage = () => {
                 <div className="p-6 flex flex-col gap-4 flex-1">
                   <p className="text-xs text-gray-500 flex items-center gap-1.5">
                     <MapPin size={14} className="shrink-0" />
-                    {uni.country}{uni.city ? ` - ${uni.city}` : ''}
+                    Malaysia{uni.city ? ` - ${uni.city}` : ''}
                   </p>
 
                   <div className="flex items-start justify-between gap-3">
@@ -415,7 +395,7 @@ const AgentUniversitiesPage = () => {
                     </button>
                     <Button
                       size="sm"
-                      onClick={() => navigate(`/agent/applications?university=${uni.id}`)}
+                      onClick={() => navigate(`/agent/students?action=register&university=${uni.id}`)}
                       className="h-9 rounded-full px-4 text-xs bg-[#042C53] hover:bg-[#0C447C] text-white"
                     >
                       Apply a student <ArrowRight size={12} className="ml-1" />

@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 const initialFormState = {
   name: '',
   code: '',
-  country: '',
+  country: 'Malaysia',
   city: '',
   website: '',
   logoUrl: '',
@@ -48,7 +48,7 @@ const UniversityModal = ({ open, onOpenChange, university = null, onSuccess }) =
       setFormData({
         name: university.name || '',
         code: university.code || '',
-        country: university.country || '',
+        country: university.country || 'Malaysia',
         city: university.city || '',
         website: university.website || '',
         logoUrl: university.logoUrl || '',
@@ -161,7 +161,7 @@ const UniversityModal = ({ open, onOpenChange, university = null, onSuccess }) =
                 <Input
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
-                  placeholder="e.g. Oxford University"
+                  placeholder="e.g. Taylor's University"
                   className={errors.name ? 'border-red-500' : ''}
                 />
                 {errors.name && <p className="text-[11px] text-red-500">{errors.name}</p>}
@@ -174,7 +174,7 @@ const UniversityModal = ({ open, onOpenChange, university = null, onSuccess }) =
                 <Input
                   value={formData.code}
                   onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
-                  placeholder="e.g. OXF-UK"
+                  placeholder="e.g. TAY-MY"
                   className={errors.code ? 'border-red-500' : ''}
                   disabled={isEditing}
                 />
@@ -228,7 +228,7 @@ const UniversityModal = ({ open, onOpenChange, university = null, onSuccess }) =
                 <Input
                   value={formData.city}
                   onChange={(e) => handleChange('city', e.target.value)}
-                  placeholder="e.g. Oxford"
+                  placeholder="e.g. Subang Jaya / Kuala Lumpur"
                 />
               </div>
 
@@ -239,7 +239,7 @@ const UniversityModal = ({ open, onOpenChange, university = null, onSuccess }) =
                 <Input
                   value={formData.website}
                   onChange={(e) => handleChange('website', e.target.value)}
-                  placeholder="https://www.ox.ac.uk"
+                  placeholder="https://university.taylors.edu.my"
                 />
               </div>
 

@@ -89,7 +89,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   avatar: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true
   },
   // ── Onboarding review: Account Manager recommends → Head of Recruitment verifies → Head of Admission approves ──

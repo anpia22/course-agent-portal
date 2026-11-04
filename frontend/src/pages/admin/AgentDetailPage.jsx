@@ -33,6 +33,7 @@ import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { cn } from '../../lib/utils';
 import AgentApplicationDetails from '../../components/agent/AgentApplicationDetails';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import AgentReviewDialog from '../../components/modals/AgentReviewDialog';
 import ReviewActionButtons from '../../components/agent/ReviewActionButtons';
 import AgentContractPanel from '../../components/agent/AgentContractPanel';
@@ -255,9 +256,11 @@ const AgentDetailPage = () => {
 
       {/* ── Top Header: Agent Identity ── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">{agent.name}</h1>
+        <div className="flex items-start gap-4">
+          <AgencyLogo agent={agent} size="lg" />
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">{agent.name}</h1>
             {agent.agentCode && (
               <span className="text-xs font-mono font-semibold text-[#0C447C] bg-[#E6F1FB] px-2 py-0.5 rounded border border-[#0C447C]/20">
                 {agent.agentCode}
@@ -293,6 +296,7 @@ const AgentDetailPage = () => {
             <span className="flex items-center gap-1.5 break-all"><Mail className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" /> {agent.email}</span>
             <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" /> {agent.phone || 'No phone'}</span>
           </div>
+        </div>
         </div>
 
         <div className="flex items-center gap-2">

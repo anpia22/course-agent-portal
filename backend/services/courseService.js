@@ -82,6 +82,8 @@ class CourseService {
       search = '',
       universityId,
       level,
+      department,
+      field,
       status,
       sortBy = 'name',
       sortOrder = 'ASC'
@@ -120,9 +122,35 @@ class CourseService {
       }
     }
 
-    // Level filtering
+    // Level filtering (supports aliases: Foundation, Diploma, Bachelor/Degree/Undergraduate, Master/Postgraduate, PhD/Doctorate)
     if (level && level !== 'all') {
-      where.level = level;
+      const l = String(level).toLowerCase();
+      if (l.includes('bachelor') || l.includes('degree') || l.includes('undergraduate')) {
+        where.level = { [Op.in]: ['Undergraduate', 'Bachelor', "Bachelor's Degree", 'Degree'] };
+      } else if (l.includes('master') || l.includes('postgraduate')) {
+        where.level = { [Op.in]: ['Postgraduate', 'Master', "Master's Degree"] };
+      } else if (l.includes('phd') || l.includes('doctorate')) {
+        where.level = { [Op.in]: ['Doctorate', 'PhD', 'PhD / Doctorate'] };
+      } else if (l.includes('foundation')) {
+        where.level = { [Op.in]: ['Foundation', 'Foundation / Pre-University', 'Certificate'] };
+      } else {
+        where.level = { [Op.iLike]: `%${level.trim()}%` };
+      }
+    }
+
+    // Subject / Field of Study filtering (Business, IT, Accounting, Engineering, Hospitality, Health, etc.)
+    const subjectFilter = department || field;
+    if (subjectFilter && subjectFilter !== 'all') {
+      const fTerm = `%${String(subjectFilter).trim()}%`;
+      where[Op.and] = [
+        ...(where[Op.and] || []),
+        {
+          [Op.or]: [
+            { department: { [Op.iLike]: fTerm } },
+            { name: { [Op.iLike]: fTerm } }
+          ]
+        }
+      ];
     }
 
     // Search query across name, code, department

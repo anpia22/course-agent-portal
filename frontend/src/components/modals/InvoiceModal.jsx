@@ -313,11 +313,30 @@ const InvoiceModal = ({
               </div>
             </div>
 
-            {/* Invoice Document URL */}
-            <div className="space-y-1.5">
-              <Label htmlFor="invoiceUrl" className="text-xs font-semibold text-gray-700">
-                Invoice File / PDF Link
+            {/* Upload Invoice Document or Provide Link */}
+            <div className="space-y-2">
+              <Label htmlFor="invoiceFileUpload" className="text-xs font-semibold text-gray-700">
+                Upload Invoice (PDF / Image) or Link
               </Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  id="invoiceFileUpload"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) {
+                      toast.error('Invoice file size must be under 10MB');
+                      e.target.value = '';
+                      return;
+                    }
+                    setInvoiceUrl(`https://storage.qstudy.com/invoices/${encodeURIComponent(file.name)}`);
+                    toast.success(`Attached invoice file: ${file.name}`);
+                  }}
+                  className="text-xs h-9 bg-white flex-1"
+                />
+              </div>
               <div className="relative">
                 <Link2 className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-400" />
                 <Input

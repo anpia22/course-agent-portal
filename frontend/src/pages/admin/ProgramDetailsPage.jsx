@@ -19,7 +19,7 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { hasStaffRole } from '../../utils/staffRoles';
 import { courseAPI, applicationAPI, formatApiError } from '../../utils/api';
-import { readFee } from '../../utils/programFee';
+import { readFee, extractNationalityFees } from '../../utils/programFee';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -38,7 +38,7 @@ import {
 import UniversityLogo from '../../components/university/UniversityLogo';
 import CourseModal from '../../components/modals/CourseModal';
 
-// The program text may hold "Entry requirements: ..." and "Awarding body: ..." lines (added by the file import).
+// The program text may hold "Entry requirements: ...", "Awarding body: ...", and "Nationality fees: ..." lines.
 // Those are shown on their own; everything else is the description.
 const splitDescription = (text) => {
   const about = [];
@@ -49,8 +49,10 @@ const splitDescription = (text) => {
     if (!trimmed) return;
     const req = trimmed.match(/^Entry requirements:\s*(.*)$/i);
     const body = trimmed.match(/^Awarding body:\s*(.*)$/i);
+    const nat = trimmed.match(/^Nationality fees:\s*(.*)$/i);
     if (req) requirements.push(...req[1].split(/[;\n]/).map((r) => r.trim()).filter(Boolean));
     else if (body) awardingBody = body[1].trim();
+    else if (nat) { /* Handled by extractNationalityFees */ }
     else about.push(trimmed);
   });
   return { about: about.join('\n'), requirements, awardingBody };
@@ -109,7 +111,6 @@ const ProgramDetailsPage = () => {
       const { data } = await applicationAPI.getAll({ courseId: programId, limit: 100 });
       setApplications(Array.isArray(data) ? data : data?.applications || []);
     } catch {
-      // non-critical: the rest of the page still works
       setApplications([]);
     } finally {
       setLoadingApps(false);
@@ -124,6 +125,7 @@ const ProgramDetailsPage = () => {
 
   const universities = program?.universities || [];
   const fee = useMemo(() => readFee(program?.tuitionFee), [program]);
+  const nationalityTiers = useMemo(() => extractNationalityFees(program?.description), [program]);
   const { about, requirements, awardingBody } = useMemo(() => splitDescription(program?.description), [program]);
 
   const tabs = [
@@ -196,7 +198,6 @@ const ProgramDetailsPage = () => {
       await deleteCourse(program.id);
       navigate('/admin/courses');
     } catch {
-      // error toast already shown
       setPending(false);
       setDialog(null);
     }
@@ -338,9 +339,42 @@ const ProgramDetailsPage = () => {
           </div>
 
           <Card className="border-[#E5E7EB] bg-white shadow-sm">
-            <CardContent className="p-6 space-y-3">
-              <p className="text-xs text-gray-500">Tuition (what the student pays)</p>
-              <p className="text-3xl font-bold text-[#111827] font-['Outfit']">{fee ? fee.text : 'On request'}</p>
+            <CardContent className="p-6 space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tuition (what the student pays)</p>
+                {fee ? (
+                  fee.hasDual ? (
+                    <div className="space-y-2.5 mt-2">
+                      <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-3">
+                        <p className="text-[11px] font-bold text-[#042C53] uppercase tracking-wider">International Student</p>
+                        <p className="text-xl font-bold text-[#111827] font-['Outfit'] mt-0.5">{fee.international.text}</p>
+                      </div>
+                      <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-3">
+                        <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Local (Malaysian) Student</p>
+                        <p className="text-xl font-bold text-emerald-900 font-['Outfit'] mt-0.5">{fee.local.text}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-3xl font-bold text-[#111827] font-['Outfit'] mt-1">{fee.text}</p>
+                  )
+                ) : (
+                  <p className="text-3xl font-bold text-[#111827] font-['Outfit'] mt-1">On request</p>
+                )}
+              </div>
+
+              {nationalityTiers.length > 0 && (
+                <div className="pt-3 border-t border-gray-100 space-y-2">
+                  <p className="text-xs font-bold text-gray-800 uppercase tracking-wider">Fees by Nationality / Region</p>
+                  <div className="space-y-1.5">
+                    {nationalityTiers.map((tier, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs bg-[#F9FAFB] border border-gray-100 rounded-lg px-3 py-2">
+                        <span className="font-medium text-gray-700">{tier.nationality}</span>
+                        <span className="font-bold text-[#042C53]">{tier.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -417,7 +451,7 @@ const ProgramDetailsPage = () => {
                   applications.map((app) => (
                     <TableRow key={app.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F9FAFB]">
                       <TableCell className="px-6 py-3.5">
-                        <button type="button" onClick={() => navigate(`/admin/applications/${app.id}`)} className="font-mono text-xs font-bold text-[#042C53] hover:underline text-left">
+                        <button type="button" onClick={() => navigate('/admin/students')} className="font-mono text-xs font-bold text-[#042C53] hover:underline text-left">
                           {app.applicationNumber}
                         </button>
                       </TableCell>

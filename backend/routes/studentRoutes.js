@@ -60,7 +60,8 @@ router.post('/', allowStaff(), requireActivatedAgent, createStudent);
 
 // ─── Phase H: Verification queue (MUST be before /:id to avoid capture) ──────
 // GET /api/students/verification/queue  — admin only, enforced in service
-router.get('/verification/queue', restrictToStaffRole('head_admission'), getVerificationQueue);
+const docAndVerificationStaff = ['account_manager', 'head_recruitment', 'head_admission'];
+router.get('/verification/queue', restrictToStaffRole(...docAndVerificationStaff), getVerificationQueue);
 
 // Student applications route (mounted before /:id)
 router.get('/:studentId/applications', getStudentApplications);
@@ -73,10 +74,10 @@ router.delete('/:id', deleteStudent);
 // Document routes (must come after student routes to avoid conflicts)
 router.post('/:id/documents', upload.single('file'), uploadDocument);
 router.post('/:id/documents/:docId/resubmit', upload.single('file'), uploadDocument);
-router.post('/:id/documents/request', allowStaff('head_admission'), requestDocument);
+router.post('/:id/documents/request', allowStaff(...docAndVerificationStaff), requestDocument);
 router.get('/:id/documents/:docId', downloadDocument);
-router.patch('/:id/documents/:docId/verify', allowStaff('head_admission'), verifyStudentDocument);
-router.patch('/:id/documents/:docId/review', allowStaff('head_admission'), verifyStudentDocument);
+router.patch('/:id/documents/:docId/verify', allowStaff(...docAndVerificationStaff), verifyStudentDocument);
+router.patch('/:id/documents/:docId/review', allowStaff(...docAndVerificationStaff), verifyStudentDocument);
 
 // ─── Phase H: Per-student verification routes ─────────────────────────────────
 // GET /api/students/:id/verification
@@ -86,12 +87,12 @@ router.get('/:id/verification', getVerificationDetail);
 router.get('/:id/verification/history', getVerificationHistory);
 
 // PATCH /api/students/:id/verification/initiate
-router.patch('/:id/verification/initiate', allowStaff('head_admission'), initiateVerification);
+router.patch('/:id/verification/initiate', allowStaff(...docAndVerificationStaff), initiateVerification);
 
 // PATCH /api/students/:id/verification/verify
-router.patch('/:id/verification/verify', allowStaff('head_admission'), verifyStudent);
+router.patch('/:id/verification/verify', allowStaff(...docAndVerificationStaff), verifyStudent);
 
 // PATCH /api/students/:id/verification/reject
-router.patch('/:id/verification/reject', allowStaff('head_admission'), rejectStudent);
+router.patch('/:id/verification/reject', allowStaff(...docAndVerificationStaff), rejectStudent);
 
 module.exports = router;

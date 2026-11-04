@@ -129,13 +129,13 @@ const SupportPage = () => {
       id: 'i2',
       category: 'Invoices & Payments',
       question: 'What happens after I submit an invoice?',
-      answer: 'Submitted → the Head of Admission verifies and approves it → Processing (waiting for the university to pay QStudy) → Accounts pays you and uploads the payment slip → Paid. If changes are needed the invoice shows "Action Required"; correct it and resubmit.'
+      answer: 'Submitted → the Head of Admission verifies and approves it → Processing (waiting for the university to pay QStudy) → Accounts/Finance pays you and uploads the payment slip → Paid. If changes are needed the invoice shows "Action Required"; correct it and resubmit.'
     },
     {
       id: 'i3',
       category: 'Invoices & Payments',
       question: 'When will I be paid?',
-      answer: 'You are paid after the university has paid QStudy and that payment is recorded in the portal; Accounts then pays you by bank transfer, in the same currency the university paid in (USD or RM). The portal only keeps the records — no money moves through it. Track each payment under Payoffs, where you can also view the payment slip.'
+      answer: 'You are paid after the university has paid QStudy and that payment is recorded in the portal; Accounts/Finance then pays you by bank transfer, in the same currency the university paid in (USD or RM). The portal only keeps the records — no money moves through it. Track each payment under Payoffs, where you can also view the payment slip.'
     },
     {
       id: 'i4',

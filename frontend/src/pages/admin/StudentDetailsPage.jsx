@@ -9,6 +9,7 @@ import {
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
@@ -549,11 +550,16 @@ const StudentDetailsPage = () => {
     ['Target course', known(getStudentFieldValue('courseInterested', 'courseInterested'))],
     ['Country of interest', known(getStudentFieldValue('country', 'country'))],
     ['Referring agent', agent ? (
-      isAdmin() ? (
-        <button onClick={() => navigate(`/admin/agents/${agent.id || agent._id}`)} className="text-[#042C53] hover:underline text-left">
-          {agent.agencyName || agent.name}{agent.agencyName && agent.name ? ` · ${agent.name}` : ''}
-        </button>
-      ) : (agent.agencyName || agent.name)
+      <div className="flex items-center gap-2">
+        <AgencyLogo agent={agent} size="xs" />
+        {isAdmin() ? (
+          <button onClick={() => navigate(`/admin/agents/${agent.id || agent._id}`)} className="text-[#042C53] hover:underline text-left font-semibold">
+            {agent.agencyName || agent.name}{agent.agencyName && agent.name ? ` · ${agent.name}` : ''}
+          </button>
+        ) : (
+          <span>{agent.agencyName || agent.name}</span>
+        )}
+      </div>
     ) : 'Direct registration'],
     ['Student email', known(getStudentFieldValue('email', 'email'))],
     ['Student phone number', known(getStudentFieldValue('phone', 'phone'))],

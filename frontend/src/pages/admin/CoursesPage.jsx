@@ -52,12 +52,14 @@ import {
 import CourseModal from '../../components/modals/CourseModal';
 import { useNavigate } from 'react-router-dom';
 import { courseAPI, formatApiError } from '../../utils/api';
+import { readFee, extractNationalityFees } from '../../utils/programFee';
 import { toast } from 'sonner';
 
 const DEGREE_LEVELS = [
+  'Foundation',
+  'Diploma',
   'Undergraduate',
   'Postgraduate',
-  'Diploma',
   'Doctorate / PhD',
   'Certificate',
   'Associate Degree'
@@ -542,21 +544,43 @@ const CoursesPage = () => {
                     </TableCell>
 
                     <TableCell className="py-4">
-                      <div className="flex flex-col text-xs text-gray-600">
-                        {course.duration && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-gray-400" /> {course.duration}
-                          </span>
-                        )}
-                        {course.tuitionFee && (
-                          <span className="text-emerald-700 font-medium mt-0.5">
-                            {course.tuitionFee}
-                          </span>
-                        )}
-                        {!course.duration && !course.tuitionFee && (
-                          <span className="text-gray-400 text-[11px]">N/A</span>
-                        )}
-                      </div>
+                      {(() => {
+                        const parsedFee = readFee(course.tuitionFee);
+                        const natTiers = extractNationalityFees(course.description);
+                        return (
+                          <div className="flex flex-col text-xs text-gray-600 gap-1">
+                            {course.duration && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-gray-400" /> {course.duration}
+                              </span>
+                            )}
+                            {parsedFee ? (
+                              parsedFee.hasDual ? (
+                                <div className="flex flex-col gap-0.5 mt-0.5">
+                                  <span className="text-[#042C53] font-semibold text-[11px]">
+                                    Intl: {parsedFee.international.text}
+                                  </span>
+                                  <span className="text-emerald-700 font-semibold text-[11px]">
+                                    Local: {parsedFee.local.text}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-emerald-700 font-medium mt-0.5">
+                                  {parsedFee.text}
+                                </span>
+                              )
+                            ) : null}
+                            {natTiers.length > 0 && (
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded w-fit">
+                                {natTiers.length} Nationality {natTiers.length === 1 ? 'Tier' : 'Tiers'}
+                              </span>
+                            )}
+                            {!course.duration && !parsedFee && natTiers.length === 0 && (
+                              <span className="text-gray-400 text-[11px]">N/A</span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
 
                     <TableCell className="py-4">

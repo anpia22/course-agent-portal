@@ -23,15 +23,18 @@ import { Input } from '../../components/ui/input';
 import { payoffAPI, invoiceReviewAPI } from '../../utils/api';
 import { FinancialStatusBadge } from '../../components/common/FinancialStatusBadge';
 import { formatCurrency, formatFinancialDate } from '../../utils/financialFormatters';
+import InvoiceModal from '../../components/modals/InvoiceModal';
+import { Plus } from 'lucide-react';
 
 const AgentPayoffsPage = () => {
-  const { payoffs, viewPayoffSlip, loading } = useData();
+  const { payoffs, viewPayoffSlip, fetchInvoices, fetchPayoffs, loading } = useData();
   const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [selectedPayoff, setSelectedPayoff] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isRaiseInvoiceOpen, setIsRaiseInvoiceOpen] = useState(false);
   const [reviewHistory, setReviewHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -103,12 +106,18 @@ const AgentPayoffsPage = () => {
     if (payoff.status === 'CANCELLED') {
       return { key: 'cancelled', label: 'Cancelled', hint: 'Contact Finance if unsure why', tone: 'bg-red-50 text-red-700 border-red-200' };
     }
+    if (payoff.universityPaid || payoff.blockBypassed) {
+      return {
+        key: 'pending',
+        label: 'University paid · Processing',
+        hint: 'University paid QStudy · Accounts/Finance is preparing your transfer',
+        tone: 'bg-teal-50 text-teal-800 border-teal-200'
+      };
+    }
     return {
       key: 'pending',
-      label: 'Waiting for payment',
-      hint: payoff.universityPaid || payoff.blockBypassed
-        ? 'QStudy Accounts is preparing your transfer'
-        : 'Waiting for the university to pay QStudy',
+      label: 'Waiting for university payment',
+      hint: 'Payment is released after the university pays QStudy',
       tone: 'bg-amber-50 text-amber-800 border-amber-300'
     };
   };
@@ -132,9 +141,10 @@ const AgentPayoffsPage = () => {
       <Table>
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
-            <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Payment</TableHead>
+            <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Payment & Invoice</TableHead>
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3 text-right">You receive</TableHead>
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Status</TableHead>
+            <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Submitted & Payment Dates</TableHead>
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Bank reference</TableHead>
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3 text-right"><span className="sr-only">Action</span></TableHead>
           </TableRow>
@@ -142,7 +152,7 @@ const AgentPayoffsPage = () => {
         <TableBody>
           {list.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-16 text-[#6B7280]">
+              <TableCell colSpan={6} className="text-center py-16 text-[#6B7280]">
                 <div className="flex flex-col items-center gap-2">
                   <CreditCard className="w-10 h-10 opacity-20" />
                   <p className="text-sm font-medium">{(payoffs || []).length === 0 ? 'No payments yet.' : 'No payments match this view.'}</p>
@@ -174,6 +184,20 @@ const AgentPayoffsPage = () => {
                     <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${stage.tone}`}>{stage.label}</span>
                     <span className="block text-[11px] text-[#6B7280] mt-1">{stage.hint}</span>
                   </TableCell>
+                  <TableCell className="px-5 py-4 text-xs">
+                    <span className="block text-[#374151]">
+                      Submitted: <strong className="font-semibold">{formatFinancialDate(invoice.invoiceDate || invoice.createdAt || payoff.createdAt)}</strong>
+                    </span>
+                    {payoff.status === 'SETTLED' && payoff.settledAt ? (
+                      <span className="block text-emerald-700 font-semibold mt-0.5">
+                        Paid: {formatFinancialDate(payoff.settledAt)}
+                      </span>
+                    ) : (
+                      <span className="block text-[#9CA3AF] mt-0.5">
+                        Payment date: Pending release
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell className="px-5 py-4 text-sm">
                     {payoff.status === 'SETTLED' && payoff.settlementReference ? (
                       <span className="font-mono text-xs font-semibold text-[#111827]">{payoff.settlementReference}</span>
@@ -203,9 +227,17 @@ const AgentPayoffsPage = () => {
   return (
     <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Payments</h1>
-        <p className="text-sm text-[#6B7280] mt-0.5">See what QStudy has paid you and what is still on its way.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">Payments</h1>
+          <p className="text-sm text-[#6B7280] mt-0.5">See when you submitted your invoice, whether the university has paid, and when payment was released to you.</p>
+        </div>
+        <Button
+          onClick={() => setIsRaiseInvoiceOpen(true)}
+          className="bg-[#042C53] hover:bg-[#0C447C] text-white h-10 px-5 text-sm font-semibold rounded-lg shadow-sm self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4 mr-1.5" /> Upload / Raise Invoice
+        </Button>
       </div>
 
       {/* Summary: each card opens the matching list */}
@@ -409,6 +441,15 @@ const AgentPayoffsPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <InvoiceModal
+        open={isRaiseInvoiceOpen}
+        onOpenChange={setIsRaiseInvoiceOpen}
+        onSuccess={() => {
+          fetchInvoices?.();
+          fetchPayoffs?.();
+        }}
+      />
     </div>
   );
 };

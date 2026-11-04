@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Activity, ArrowRight, CheckCircle2, Calendar } from 'lucide-react';
 import { ChartCard, TrendChart } from './DashboardCharts';
 
 export const isSameDay = (a, b) =>
@@ -135,9 +135,18 @@ export const FILTERS = [
   { key: 'agent', label: 'Agents' },
 ];
 
-/** Work history: last 14 days chart + a day-by-day timeline with type filters. */
+export const DATE_PRESETS = [
+  { key: 'all', label: 'All Time' },
+  { key: 'today', label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: 'week', label: 'This Week' },
+  { key: 'month', label: 'One Month' },
+];
+
+/** Work history: last 14 days chart + a day-by-day timeline with type & date filters. */
 export const HistoryPanel = ({ events, filters = FILTERS }) => {
   const [filter, setFilter] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
   const [limit, setLimit] = useState(25);
 
   const dailyData = useMemo(() => {
@@ -154,7 +163,21 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
     return rows;
   }, [events]);
 
-  const filtered = useMemo(() => events.filter((e) => filter === 'all' || e.type === filter), [events, filter]);
+  const filtered = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    return events.filter((e) => {
+      if (filter !== 'all' && e.type !== filter) return false;
+      if (dateRange === 'all') return true;
+      const evStart = startOfDay(e.time);
+      const diffDays = Math.round((todayStart - evStart) / 86400000);
+      if (dateRange === 'today') return diffDays === 0;
+      if (dateRange === 'yesterday') return diffDays === 1;
+      if (dateRange === 'week') return diffDays >= 0 && diffDays <= 7;
+      if (dateRange === 'month') return diffDays >= 0 && diffDays <= 30;
+      return true;
+    });
+  }, [events, filter, dateRange]);
+
   const visible = filtered.slice(0, limit);
 
   const groups = [];
@@ -174,7 +197,26 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
-          <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">Timeline</h3>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h3 className="text-base font-semibold text-[#111827] font-['Outfit']">Timeline</h3>
+            <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+              <Calendar className="w-3.5 h-3.5 text-slate-500 ml-1.5 mr-0.5" />
+              {DATE_PRESETS.map((dp) => (
+                <button
+                  key={dp.key}
+                  type="button"
+                  onClick={() => { setDateRange(dp.key); setLimit(25); }}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all ${
+                    dateRange === dp.key
+                      ? 'bg-white text-[#042C53] shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {dp.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {filters.map((f) => (
               <button
@@ -224,7 +266,7 @@ export const HistoryPanel = ({ events, filters = FILTERS }) => {
         ) : (
           <div className="p-10 text-center">
             <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-400 font-medium">No history to show</p>
+            <p className="text-sm text-slate-400 font-medium">No history to show for this period</p>
           </div>
         )}
       </div>

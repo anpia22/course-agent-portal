@@ -9,9 +9,10 @@ import {
 } from "../ui/dialog";
 import DynamicStudentForm from '../forms/DynamicStudentForm';
 
-const StudentRegistrationModal = ({ open, onOpenChange }) => {
+const StudentRegistrationModal = ({ open, onOpenChange, defaultUniversityId = '', defaultCourseId = '', onSuccess }) => {
   // Handle successful registration
   const handleSuccess = () => {
+    if (onSuccess) onSuccess();
     onOpenChange(false);
   };
 
@@ -24,14 +25,18 @@ const StudentRegistrationModal = ({ open, onOpenChange }) => {
               <GraduationCap className="w-5 h-5 text-[#042C53]" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-[#111827] font-['Outfit']">Register New Student</DialogTitle>
-              <DialogDescription className="text-xs text-gray-500 font-medium mt-0.5">Add a student to the portal</DialogDescription>
+              <DialogTitle className="text-xl font-bold text-[#111827] font-['Outfit']">Register Student & Apply</DialogTitle>
+              <DialogDescription className="text-xs text-gray-500 font-medium mt-0.5">Register student details and directly submit their university course application</DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         <div className="px-8 py-7 bg-[#F9FAFB] flex-1 overflow-y-auto custom-scrollbar">
-          <DynamicStudentForm onSuccess={handleSuccess} />
+          <DynamicStudentForm
+            onSuccess={handleSuccess}
+            defaultUniversityId={defaultUniversityId}
+            defaultCourseId={defaultCourseId}
+          />
         </div>
       </DialogContent>
     </Dialog>

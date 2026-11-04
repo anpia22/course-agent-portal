@@ -332,6 +332,7 @@ exports.updateProfile = async (req, res) => {
     const fieldsToUpdate = {
       name: req.body.name,
       phone: req.body.phone,
+      avatar: req.body.avatar,
       agencyName: req.body.agencyName,
       businessRegistrationNumber: req.body.businessRegistrationNumber,
       fullAddress: req.body.fullAddress
@@ -356,6 +357,41 @@ exports.updateProfile = async (req, res) => {
           detail: 'Your application is under review. Details cannot be changed until it is returned to you.'
         });
       }
+
+      // Compliance Lock: Prevent silent modification of critical legal & bank details for verified/activated partners
+      const isPartnerLocked = Boolean(user.isVerified || user.isActivated || ['verified', 'approved'].includes(user.onboardingStatus));
+      if (isPartnerLocked) {
+        const CRITICAL_LOCKED_FIELDS = [
+          'agencyName',
+          'businessRegistrationNumber',
+          'country',
+          'bankBeneficiaryName',
+          'bankName',
+          'bankAccountNumber',
+          'bankSwiftCode',
+          'bankIban'
+        ];
+
+        const hasUnauthorizedChange = CRITICAL_LOCKED_FIELDS.some(field => {
+          const incoming = req.body[field] !== undefined ? req.body[field] : appFields[field];
+          if (incoming === undefined || incoming === null) return false;
+          const current = user[field];
+          return String(incoming).trim() !== String(current || '').trim();
+        });
+
+        if (hasUnauthorizedChange) {
+          return res.status(403).json({
+            success: false,
+            detail: 'Bank particulars and legal company registration are locked for verified partners. Please submit a formal Change Request to update payout instructions.'
+          });
+        }
+
+        CRITICAL_LOCKED_FIELDS.forEach(f => {
+          delete fieldsToUpdate[f];
+          delete appFields[f];
+        });
+      }
+
       const errors = validateApplication(appFields, { mode: 'update', existing: user.toJSON() });
       if (errors.length) {
         return res.status(400).json({ success: false, detail: errors.join('. ') });

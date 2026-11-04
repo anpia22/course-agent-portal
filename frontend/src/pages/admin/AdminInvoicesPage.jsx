@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { hasStaffRole } from '../../utils/staffRoles';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
 import { cn } from '../../lib/utils';
@@ -214,8 +215,13 @@ const AdminInvoicesPage = () => {
                     </span>
                   </TableCell>
                   <TableCell className="px-5 py-4">
-                    <span className="text-sm font-semibold text-[#111827] block">{invoice.agentId?.agencyName || invoice.agentId?.name || 'Agency'}</span>
-                    <span className="text-[11px] text-[#6B7280]">{invoice.agentId?.name}</span>
+                    <div className="flex items-center gap-2.5">
+                      <AgencyLogo agent={invoice.agentId} size="xs" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold text-[#111827] block truncate">{invoice.agentId?.agencyName || invoice.agentId?.name || 'Agency'}</span>
+                        <span className="text-[11px] text-[#6B7280] block truncate">{invoice.agentId?.name}</span>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="px-5 py-4 text-right font-semibold text-[#111827] tabular-nums">
                     {invoice.amount > 0 ? (

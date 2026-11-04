@@ -65,7 +65,7 @@ router.get('/:id', getAgent);
 router.post('/', restrictToSuperAdminOr('account_manager'), createAgent);
 router.post('/admin', restrictToSuperAdminOr(), createAdmin);
 router.put('/:id', restrictToSuperAdminOr('account_manager', 'head_recruitment', 'head_admission'), updateAgent);
-router.put('/:id/university-access', restrictToSuperAdminOr(), updateUniversityAccess);
+router.put('/:id/university-access', restrictToSuperAdminOr('head_admission'), updateUniversityAccess);
 router.delete('/:id', restrictToSuperAdminOr(), deleteAgent);
 router.patch('/:id/verify', restrictToStaffRole('head_recruitment', 'head_admission'), verifyAgent);
 router.get('/:id/documents/:docId', downloadVerificationDocument);

@@ -21,7 +21,9 @@ import {
   Building2,
   Globe,
   ArrowUpRight,
-  ChevronRight
+  LifeBuoy,
+  Newspaper,
+  Pin,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
@@ -44,7 +46,7 @@ const pick = (...keys) => FILTERS.filter(f => f.key === 'all' || keys.includes(f
 const AdminDashboard = () => {
   const { user } = useAuth();
   const {
-    agents, students, applications, invoices, payoffs, verificationQueue, initialized,
+    agents, students, applications, invoices, payoffs, verificationQueue, tickets, news, initialized,
     fetchVerificationQueue
   } = useData();
 
@@ -146,6 +148,7 @@ const AdminDashboard = () => {
   const pendingVerifications = (verificationQueue || []).filter(s => ['pending', 'initiated'].includes(lower(s.verificationStatus))).length;
   const feeProofsToReview = applications.filter(a => a.feeStatus === 'ProofSubmitted').length;
   const applicationsToReview = applications.filter(a => ['submitted', 'under_review', 'underreview'].includes(lower(a.status))).length;
+  const openTicketsCount = (tickets || []).filter(t => ['open', 'in_progress', 'pending'].includes(lower(t.status))).length;
 
   const onboarding = (st) => agents.filter(a => a.onboardingStatus === st).length;
   const toRecommend = onboarding('submitted') + onboarding('under_review');
@@ -159,20 +162,25 @@ const AdminDashboard = () => {
   const events = [];
   const pushEvent = (e) => { if (e.time) events.push(e); };
 
-  const studentEvents = () => students.forEach(s => pushEvent({
-    id: `s-${s.id}`, type: 'student', time: toDate(s.updatedAt || s.createdAt),
-    title: s.name || 'Student',
-    detail: toDate(s.updatedAt) && toDate(s.createdAt) && toDate(s.updatedAt) - toDate(s.createdAt) > 60000
-      ? `Student updated — ${getFunnelLabel(s)}` : 'New student registered',
-    by: agents.find(a => a.id === s.agentId)?.name,
-    icon: GraduationCap, iconBg: '#E6F1FB', iconColor: '#185FA5', to: `/admin/students/${s.id}`
-  }));
+  const studentEvents = () => students.forEach(s => {
+    const appId = s.applications?.[0]?.id || s.applications?.[0]?._id;
+    pushEvent({
+      id: `s-${s.id}`, type: 'student', time: toDate(s.updatedAt || s.createdAt),
+      title: s.name || 'Student',
+      detail: toDate(s.updatedAt) && toDate(s.createdAt) && toDate(s.updatedAt) - toDate(s.createdAt) > 60000
+        ? `Student updated — ${getFunnelLabel(s)}` : 'New student registered',
+      by: agents.find(a => a.id === s.agentId)?.name,
+      icon: GraduationCap, iconBg: '#E6F1FB', iconColor: '#185FA5',
+      to: appId ? `/admin/applications/${appId}` : `/admin/students/${s.id}`
+    });
+  });
   const applicationEvents = () => applications.forEach(app => pushEvent({
     id: `a-${app.id}`, type: 'application', time: toDate(app.updatedAt || app.createdAt || app.submittedAt),
     title: app.student?.name || app.studentName || 'Student',
     detail: `Application — ${formatStatus(app.status)}`,
     by: app.agentName || agentLabel(app.agent) || agents.find(a => a.id === app.agentId)?.name,
-    icon: ClipboardList, iconBg: '#EEEDFE', iconColor: '#534AB7', to: '/admin/applications'
+    icon: ClipboardList, iconBg: '#EEEDFE', iconColor: '#534AB7',
+    to: `/admin/applications/${app.id}`
   }));
   const invoiceEvents = () => invoices.forEach(inv => pushEvent({
     id: `i-${inv.id || inv._id}`, type: 'invoice', time: toDate(inv.updatedAt || inv.raisedAt || inv.createdAt),
@@ -224,6 +232,7 @@ const AdminDashboard = () => {
       actions: [
         readyToSettle.length && A(Wallet, '#ECFDF5', '#047857', readyToSettle.length, 'payoffs ready to pay — university has paid', '/admin/payoffs'),
         waitingForUniversity.length && A(Clock, '#FFF7ED', '#B45309', waitingForUniversity.length, 'payoffs waiting for the university to pay us', '/admin/payoffs'),
+        openTicketsCount && A(LifeBuoy, '#E6F1FB', '#0C447C', openTicketsCount, 'support tickets needing help', '/admin/support'),
       ],
       glance: [
         G('Ready to pay out', formatCurrency(readyToSettle.reduce((s, p) => s + getPayoffAmount(p), 0)), `${readyToSettle.length} payoff${readyToSettle.length !== 1 ? 's' : ''}`, Wallet, '#047857', '#ECFDF5', '/admin/payoffs', readyToSettle.length > 0),
@@ -249,6 +258,7 @@ const AdminDashboard = () => {
         toVerify && A(ShieldCheck, '#E1F5EE', '#085041', toVerify, 'agent applications ready for you to verify', '/admin/agents'),
         toRecommend && A(Clock, '#E6F1FB', '#0C447C', toRecommend, 'agent applications still with the account manager', '/admin/agents'),
         changesRequested && A(AlertTriangle, '#FFF1E0', '#8A4B08', changesRequested, 'agents fixing requested changes', '/admin/agents'),
+        openTicketsCount && A(LifeBuoy, '#E6F1FB', '#0C447C', openTicketsCount, 'support tickets needing help', '/admin/support'),
       ],
       glance: [
         G('Agents', agents.length, `${activeAgents} active`, Users, '#534AB7', '#EEEDFE', '/admin/agents'),
@@ -264,21 +274,22 @@ const AdminDashboard = () => {
       showVisa: true,
       filters: pick('application', 'student', 'invoice', 'agent'),
       tiles: [
-        T('New applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/applications'),
-        T('Stage changes', madeToday(applications, a => a.pipelineUpdatedAt), 'students moved on today', FileCheck, '#0C447C', '#E6F1FB', '/admin/applications'),
-        T('Fee proofs', madeToday(applications.filter(a => a.feeStatus === 'ProofSubmitted'), a => a.updatedAt), 'uploaded today', FileText, '#B45309', '#FFF7ED', '/admin/applications'),
+        T('New applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/students'),
+        T('Stage changes', madeToday(applications, a => a.pipelineUpdatedAt), 'students moved on today', FileCheck, '#0C447C', '#E6F1FB', '/admin/students'),
+        T('Fee proofs', madeToday(applications.filter(a => a.feeStatus === 'ProofSubmitted'), a => a.updatedAt), 'uploaded today', FileText, '#B45309', '#FFF7ED', '/admin/students'),
         T('Invoices raised', madeToday(invoices, i => i.raisedAt || i.createdAt), 'sent for review today', FileText, '#0C447C', '#E6F1FB', '/admin/invoices'),
         T('New students', madeToday(students, s => s.createdAt), 'registered today', GraduationCap, '#185FA5', '#E6F1FB', '/admin/students'),
       ],
       actions: [
         toApprove && A(UserCheck, '#EAF3DE', '#27500A', toApprove, 'agent applications ready for your approval', '/admin/agents'),
         invoicesUnderReview && A(FileText, '#E6F1FB', '#0C447C', invoicesUnderReview, 'invoices waiting for your review', '/admin/invoices'),
-        feeProofsToReview && A(FileCheck, '#FFF7ED', '#B45309', feeProofsToReview, 'fee payment proofs to accept or reject', '/admin/applications'),
+        feeProofsToReview && A(FileCheck, '#FFF7ED', '#B45309', feeProofsToReview, 'fee payment proofs to accept or reject', '/admin/students'),
         pendingVerifications && A(ShieldCheck, '#EEEDFE', '#534AB7', pendingVerifications, 'student documents waiting for verification', '/admin/students?tab=queue'),
-        applicationsToReview && A(ClipboardList, '#EEEDFE', '#534AB7', applicationsToReview, 'applications to review', '/admin/applications'),
+        applicationsToReview && A(ClipboardList, '#EEEDFE', '#534AB7', applicationsToReview, 'applications to review', '/admin/students'),
+        openTicketsCount && A(LifeBuoy, '#E6F1FB', '#0C447C', openTicketsCount, 'support tickets needing help', '/admin/support'),
       ],
       glance: [
-        G('Applications in progress', activeApplications, `${applications.length} in total`, ClipboardList, '#534AB7', '#EEEDFE', '/admin/applications'),
+        G('Applications in progress', activeApplications, `${applications.length} in total`, ClipboardList, '#534AB7', '#EEEDFE', '/admin/students'),
         G('Students', students.length, `${students.filter(s => s.feesPaid).length} have paid fees`, GraduationCap, '#185FA5', '#E6F1FB', '/admin/students'),
         G('Invoices to review', invoicesUnderReview, `${correctionRequired} sent back for correction`, FileText, '#0C447C', '#E6F1FB', '/admin/invoices', invoicesUnderReview > 0),
         G('Agents', agents.length, `${approvedAgents} approved · ${toApprove} awaiting approval`, Users, '#92400E', '#FEF3C7', '/admin/agents'),
@@ -292,7 +303,7 @@ const AdminDashboard = () => {
       filters: pick('agent', 'student', 'application', 'invoice'),
       tiles: [
         T('Students added', madeToday(students, s => s.createdAt), 'by your agents today', GraduationCap, '#185FA5', '#E6F1FB', '/admin/students'),
-        T('Applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/applications'),
+        T('Applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/students'),
         T('Invoices raised', madeToday(invoices, i => i.raisedAt || i.createdAt), 'by your agents today', FileText, '#0C447C', '#E6F1FB', '/admin/invoices'),
         T('Agent updates', madeToday(agents, a => a.updatedAt), 'agents active today', Users, '#92400E', '#FEF3C7', '/admin/agents'),
         T('Paid today', madeToday(settledPayoffs, p => p.settledAt || p.updatedAt), 'payoffs to your agents', BadgeCheck, '#047857', '#ECFDF5', '/admin/payoffs'),
@@ -300,13 +311,15 @@ const AdminDashboard = () => {
       actions: [
         toRecommend && A(UserCheck, '#EEEDFE', '#534AB7', toRecommend, 'agent applications waiting for your recommendation', '/admin/agents'),
         changesRequested && A(AlertTriangle, '#FFF1E0', '#8A4B08', changesRequested, 'agents who need to fix their application', '/admin/agents'),
+        pendingVerifications && A(ShieldCheck, '#EEEDFE', '#534AB7', pendingVerifications, 'student documents waiting for your verification', '/admin/students?tab=queue'),
         correctionRequired && A(FileText, '#FCEBEB', '#791F1F', correctionRequired, 'invoices sent back — help your agent fix them', '/admin/invoices'),
         pendingAgents && A(Users, '#FEF3C7', '#92400E', pendingAgents, 'agents not active yet', '/admin/agents'),
+        openTicketsCount && A(LifeBuoy, '#E6F1FB', '#0C447C', openTicketsCount, 'support tickets from your agents', '/admin/support'),
       ],
       glance: [
         G('My agents', agents.length, `${activeAgents} active`, Users, '#534AB7', '#EEEDFE', '/admin/agents'),
         G('Students', students.length, `${students.filter(s => s.feesPaid).length} have paid fees`, GraduationCap, '#185FA5', '#E6F1FB', '/admin/students'),
-        G('Applications in progress', activeApplications, `${applications.length} in total`, ClipboardList, '#B45309', '#FFF7ED', '/admin/applications'),
+        G('Applications in progress', activeApplications, `${applications.length} in total`, ClipboardList, '#B45309', '#FFF7ED', '/admin/students'),
         G("Agents' earnings", formatCurrency(settledAmount), `${formatCurrency(pendingPayoffsAmount)} still to be paid`, Wallet, '#047857', '#ECFDF5', '/admin/payoffs'),
       ],
     };
@@ -319,7 +332,7 @@ const AdminDashboard = () => {
       filters: FILTERS,
       tiles: [
         T('New students', madeToday(students, s => s.createdAt), 'registered today', GraduationCap, '#185FA5', '#E6F1FB', '/admin/students'),
-        T('New applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/applications'),
+        T('New applications', madeToday(applications, a => a.createdAt || a.submittedAt), 'submitted today', ClipboardList, '#534AB7', '#EEEDFE', '/admin/students'),
         T('Invoices raised', madeToday(invoices, i => i.raisedAt || i.createdAt), 'by agents today', FileText, '#0C447C', '#E6F1FB', '/admin/invoices'),
         T('Settled today', madeToday(settledPayoffs, p => p.settledAt || p.updatedAt), 'payoffs paid out', BadgeCheck, '#047857', '#ECFDF5', '/admin/payoffs'),
         T('New agents', madeToday(agents, a => a.createdAt), 'registered today', Users, '#92400E', '#FEF3C7', '/admin/agents'),
@@ -330,6 +343,7 @@ const AdminDashboard = () => {
         pendingPayoffs.length && A(Wallet, '#FFF7ED', '#B45309', pendingPayoffs.length, 'payoffs pending settlement', '/admin/payoffs'),
         pendingVerifications && A(UserCheck, '#EEEDFE', '#534AB7', pendingVerifications, 'student verifications pending', '/admin/students?tab=queue'),
         pendingAgents && A(Users, '#FEF3C7', '#92400E', pendingAgents, 'agents pending approval', '/admin/agents'),
+        openTicketsCount && A(LifeBuoy, '#E6F1FB', '#0C447C', openTicketsCount, 'support tickets open', '/admin/support'),
       ],
       glance: [
         G('Agents', agents.length, `${activeAgents} active`, Users, '#534AB7', '#EEEDFE', '/admin/agents'),
@@ -343,6 +357,13 @@ const AdminDashboard = () => {
   events.sort((a, b) => b.time - a.time);
   const actions = view.actions.filter(Boolean);
   const roleLabel = user?.staffRole ? getRoleLabel(user) : 'Admin Portal';
+
+  const recentNews = useMemo(() => {
+    const list = Array.isArray(news) ? [...news] : [];
+    return list
+      .sort((a, b) => (Number(Boolean(b.isPinned)) - Number(Boolean(a.isPinned))) || (new Date(b.createdAt || 0) - new Date(a.createdAt || 0)))
+      .slice(0, 3);
+  }, [news]);
 
   return (
     <div className="bg-[#FDFDFF] min-h-screen font-sans" data-testid="admin-dashboard">
@@ -358,7 +379,7 @@ const AdminDashboard = () => {
 
         {view.showVisa && (
           <div className="mb-6">
-            <PipelineSummary applications={applications} to="/admin/applications" />
+            <PipelineSummary applications={applications} to="/admin/students" />
           </div>
         )}
 
@@ -512,6 +533,57 @@ const AdminDashboard = () => {
         </div>
 
         <HistoryPanel events={events} filters={view.filters} />
+
+        {/* News & Updates */}
+        <div className="mt-8" data-testid="admin-dashboard-news-section">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">News and Updates</span>
+            <Link to="/admin/news" className="text-xs font-semibold text-[#042C53] hover:underline inline-flex items-center gap-1">
+              Manage news &amp; updates <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            {recentNews.length === 0 ? (
+              <div className="p-8 text-center">
+                <Newspaper className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500 font-medium">Create news and updates to broadcast announcements to all agents.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {recentNews.map((item) => (
+                  <Link
+                    key={item.id || item._id}
+                    to="/admin/news"
+                    className="flex items-start justify-between gap-4 p-4 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] text-[#042C53] flex items-center justify-center shrink-0 mt-0.5">
+                        <Newspaper className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {item.isPinned && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                              <Pin className="w-2.5 h-2.5" /> Pinned
+                            </span>
+                          )}
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {item.category === 'update' ? 'Update' : 'News'}
+                          </span>
+                          <h4 className="text-sm font-bold text-slate-900 truncate">{item.title}</h4>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-1 line-clamp-2">{item.content}</p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap shrink-0">
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

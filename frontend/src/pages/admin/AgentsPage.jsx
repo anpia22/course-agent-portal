@@ -68,6 +68,7 @@ import {
 } from '../../components/ui/alert-dialog';
 import AgentModal from '../../components/modals/AgentModal';
 import InviteAgentDialog from '../../components/modals/InviteAgentDialog';
+import { AgencyLogo } from '../../components/common/AgencyLogo';
 import AgentApplicationDetails from '../../components/agent/AgentApplicationDetails';
 import AgentReviewDialog from '../../components/modals/AgentReviewDialog';
 import ReviewActionButtons from '../../components/agent/ReviewActionButtons';
@@ -112,6 +113,7 @@ const AgentsPage = () => {
     deleteAgent,
     getStats,
     students,
+    applications,
     invoices,
     viewAgentDocument,
     updateAgent,
@@ -126,6 +128,7 @@ const AgentsPage = () => {
   const [countryFilter, setCountryFilter] = useState(searchParams.get('country') || 'all');
   const [managerFilter, setManagerFilter] = useState(searchParams.get('accountManagerId') || 'all');
   const [regionFilter, setRegionFilter] = useState(searchParams.get('region') || 'all');
+  const [quickAgentId, setQuickAgentId] = useState(searchParams.get('agentId') || 'all');
   const [accountManagers, setAccountManagers] = useState([]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -290,9 +293,36 @@ const AgentsPage = () => {
         agent.accountManagerId === managerFilter ||
         agent.accountManager?.id === managerFilter;
 
-      return matchesSearch && matchesStatus && matchesCountry && matchesRegion && matchesManager;
+      const matchesQuickAgent =
+        quickAgentId === 'all' || String(agent.id) === String(quickAgentId);
+
+      return matchesSearch && matchesStatus && matchesCountry && matchesRegion && matchesManager && matchesQuickAgent;
     });
-  }, [processedAgents, searchQuery, currentFilter, countryFilter, regionFilter, managerFilter]);
+  }, [processedAgents, searchQuery, currentFilter, countryFilter, regionFilter, managerFilter, quickAgentId]);
+
+  const selectedQuickAgent = useMemo(() => {
+    if (quickAgentId === 'all') return null;
+    return processedAgents.find(a => String(a.id) === String(quickAgentId)) || null;
+  }, [processedAgents, quickAgentId]);
+
+  const quickAgentStudents = useMemo(() => {
+    if (!selectedQuickAgent) return [];
+    return students
+      .filter(s => String(s.agentId?.id || s.agentId?._id || s.agentId) === String(selectedQuickAgent.id))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }, [selectedQuickAgent, students]);
+
+  const handleOpenStudentApplication = (studentId) => {
+    if (!studentId) return;
+    const stuApps = (applications || [])
+      .filter(app => String(app.studentId?.id || app.studentId?._id || app.studentId || app.student?.id) === String(studentId))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    if (stuApps.length > 0) {
+      navigate(`/admin/applications/${stuApps[0].id || stuApps[0]._id}`);
+    } else {
+      navigate(`/admin/students/${studentId}?tab=applications`);
+    }
+  };
 
   // Back to page 1 and sync query params whenever filters change
   useEffect(() => {
@@ -311,6 +341,7 @@ const AgentsPage = () => {
     setCountryFilter('all');
     setManagerFilter('all');
     setRegionFilter('all');
+    setQuickAgentId('all');
   };
 
   const hasActiveFilters =
@@ -318,7 +349,8 @@ const AgentsPage = () => {
     currentFilter !== 'all' ||
     countryFilter !== 'all' ||
     managerFilter !== 'all' ||
-    regionFilter !== 'all';
+    regionFilter !== 'all' ||
+    quickAgentId !== 'all';
 
   const totalPages = Math.max(1, Math.ceil(filteredAgents.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -477,9 +509,7 @@ const AgentsPage = () => {
               return (
                 <div key={agent.id} className="flex-shrink-0 w-full md:w-[calc((100%-32px)/3)] min-w-[320px] p-4 rounded-xl border border-[#E5E7EB] bg-white group hover:border-[#042C53]/20 transition-all snap-start">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-semibold text-xs", styles.bg, styles.text)}>
-                      {getInitials(agent.name)}
-                    </div>
+                    <AgencyLogo agent={agent} size="sm" />
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-semibold text-[#111827]">{agent.name}</h4>
@@ -644,6 +674,55 @@ const AgentsPage = () => {
             <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 rotate-90 pointer-events-none" />
           </div>
 
+          {/* Filter: Quick Agent Dropdown */}
+          <div className="relative flex items-center min-w-[190px]">
+            <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <select
+              value={quickAgentId}
+              onChange={(e) => setQuickAgentId(e.target.value)}
+              className={cn(
+                "w-full pl-8 pr-7 h-8 border rounded-lg text-xs font-medium appearance-none transition-colors cursor-pointer",
+                quickAgentId !== 'all'
+                  ? "bg-[#E6F1FB] border-[#0C447C]/30 text-[#0C447C] font-semibold"
+                  : "bg-white border-[#E5E7EB] text-slate-700 hover:border-slate-300"
+              )}
+              data-testid="quick-agent-select"
+            >
+              <option value="all">🤝 Select Agent ({processedAgents.length})</option>
+              {processedAgents.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.registrations} students)
+                </option>
+              ))}
+            </select>
+            <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 rotate-90 pointer-events-none" />
+          </div>
+
+          {/* Cascaded Student Dropdown (Latest on top) when an agent is selected */}
+          {selectedQuickAgent && (
+            <div className="relative flex items-center min-w-[230px]">
+              <GraduationCap className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#085041] pointer-events-none" />
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  if (e.target.value) handleOpenStudentApplication(e.target.value);
+                }}
+                className="w-full pl-8 pr-7 h-8 border rounded-lg text-xs font-semibold appearance-none transition-colors cursor-pointer bg-[#E1F5EE] border-[#085041]/30 text-[#085041]"
+                data-testid="cascaded-student-select"
+              >
+                <option value="">
+                  🎓 {selectedQuickAgent.name}&apos;s Students ({quickAgentStudents.length} · Latest on top)
+                </option>
+                {quickAgentStudents.map((stu, idx) => (
+                  <option key={stu.id} value={stu.id}>
+                    {idx === 0 ? '★ [Latest] ' : ''}{stu.name} — {stu.course || stu.status || 'Open Application'}
+                  </option>
+                ))}
+              </select>
+              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#085041] rotate-90 pointer-events-none" />
+            </div>
+          )}
+
           {/* Filter: Agents by Region */}
           <div className="relative flex items-center min-w-[150px]">
             <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
@@ -725,9 +804,7 @@ const AgentsPage = () => {
                       <TableRow key={agent.id} className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
                         <TableCell className="py-3 pl-6">
                           <div className="flex items-center gap-3">
-                            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-semibold text-[10px]", styles.bg, styles.text)}>
-                              {getInitials(agent.name)}
-                            </div>
+                            <AgencyLogo agent={agent} size="sm" />
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <Link
@@ -828,9 +905,7 @@ const AgentsPage = () => {
                 <Card key={agent.id} className="border-[#E5E7EB] shadow-sm hover:shadow-md transition-all group overflow-hidden bg-white">
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between mb-4">
-                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center font-bold text-base shadow-sm", styles.bg, styles.text)}>
-                        {getInitials(agent.name)}
-                      </div>
+                      <AgencyLogo agent={agent} size="md" />
                       <div className="flex items-center gap-1">
                         <button
                           className="h-8 w-8 flex items-center justify-center rounded-md text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 transition-all"
@@ -956,6 +1031,106 @@ const AgentsPage = () => {
         </div>
       )}
 
+      {/* Selected Agent Profile Summary Card (Bottom-Right as requested in walkthrough [12:35 - 13:20]) */}
+      {selectedQuickAgent && (
+        <div className="flex justify-end" data-testid="selected-agent-bottom-right-card">
+          <div className="w-full lg:w-[440px] bg-white rounded-2xl border-2 border-[#042C53]/20 shadow-lg p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm", getAvatarStyles(selectedQuickAgent.name).bg, getAvatarStyles(selectedQuickAgent.name).text)}>
+                  {getInitials(selectedQuickAgent.name)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-[#111827] font-['Outfit']">{selectedQuickAgent.name}</h4>
+                    {selectedQuickAgent.agentCode && (
+                      <span className="text-[10px] font-mono bg-[#F3F4F6] text-[#374151] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
+                        {selectedQuickAgent.agentCode}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#6B7280]">{selectedQuickAgent.agencyName || 'Independent Agency'} · {selectedQuickAgent.country || 'Global'}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickAgentId('all')}
+                className="text-xs text-[#6B7280] hover:text-[#111827] p-1"
+                title="Clear selected agent"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#6B7280] block">Students</span>
+                <span className="text-base font-bold text-[#042C53]">{selectedQuickAgent.registrations}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#6B7280] block">In Visa</span>
+                <span className="text-base font-bold text-[#0C447C]">{selectedQuickAgent.confirmed}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#6B7280] block">Fees Paid</span>
+                <span className="text-base font-bold text-[#27500A]">{selectedQuickAgent.converted}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs text-[#4B5563]">
+              <div className="truncate"><strong className="text-[#111827]">Email:</strong> {selectedQuickAgent.email}</div>
+              <div className="truncate"><strong className="text-[#111827]">Phone:</strong> {selectedQuickAgent.phone || 'N/A'}</div>
+              <div className="truncate"><strong className="text-[#111827]">Region:</strong> {selectedQuickAgent.region || 'N/A'}</div>
+              <div className="truncate"><strong className="text-[#111827]">Manager:</strong> {selectedQuickAgent.accountManager?.name || 'Unassigned'}</div>
+            </div>
+
+            {quickAgentStudents.length > 0 && (
+              <div className="space-y-1.5 pt-2 border-t border-[#F3F4F6]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280] block">
+                  Latest Students (Click to open Application)
+                </span>
+                <div className="max-h-36 overflow-y-auto divide-y divide-[#F3F4F6] border border-[#E5E7EB] rounded-lg">
+                  {quickAgentStudents.slice(0, 5).map((stu, i) => (
+                    <button
+                      key={stu.id}
+                      type="button"
+                      onClick={() => handleOpenStudentApplication(stu.id)}
+                      className="w-full px-3 py-2 text-left text-xs hover:bg-[#F0F7FF] flex items-center justify-between transition-colors"
+                    >
+                      <span className="font-semibold text-[#111827] truncate">
+                        {i === 0 && <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded mr-1.5 font-bold">Latest</span>}
+                        {stu.name}
+                      </span>
+                      <span className="text-[11px] text-[#0C447C] font-medium shrink-0 flex items-center gap-1">
+                        Open Application <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                size="sm"
+                onClick={() => handleAgentDetails(selectedQuickAgent, 'students')}
+                className="flex-1 h-8 text-xs font-semibold bg-[#042C53] hover:bg-[#0C447C] text-white"
+              >
+                Open Full Agent Profile
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleView(selectedQuickAgent)}
+                className="h-8 text-xs font-semibold border-[#E5E7EB]"
+              >
+                Quick Drawer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Agent Detail Drawer */}
       {drawerOpen && agentInDrawer && (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -965,9 +1140,7 @@ const AgentsPage = () => {
               <div className="p-6 border-b border-[#E5E7EB] flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={cn("w-12 h-12 rounded-full flex items-center justify-center font-semibold text-lg", getAvatarStyles(agentInDrawer.name).bg, getAvatarStyles(agentInDrawer.name).text)}>
-                      {getInitials(agentInDrawer.name)}
-                    </div>
+                    <AgencyLogo agent={agentInDrawer} size="md" />
                     <div>
                       <h3 className="text-lg font-semibold text-[#111827]">{agentInDrawer.name}</h3>
                       <p className="text-sm text-[#6B7280]">{agentInDrawer.agencyName || 'Independent'} · {agentInDrawer.region || 'Unknown'}</p>

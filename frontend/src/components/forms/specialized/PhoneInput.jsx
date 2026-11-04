@@ -1,16 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '../../ui/command';
 import {
   Popover,
   PopoverContent,
@@ -18,113 +8,278 @@ import {
 } from '../../ui/popover';
 import { countries } from '../../../lib/countries';
 
-const PhoneInput = ({ value = '', onChange, placeholder = "Enter phone number", className, defaultCountry = "IN", disabled = false }) => {
+/**
+ * Standard PhoneInput with Country Flag and Dial Code selector.
+ * Strictly prevents entry of letters and symbols into the phone number.
+ */
+const PhoneInput = ({
+  value = '',
+  onChange,
+  onBlur,
+  onFocus,
+  placeholder = '12 345 6789',
+  className = '',
+  defaultCountry = 'MY',
+  disabled = false,
+  required = false,
+  id,
+  name,
+  hasError = false,
+  error = false,
+}) => {
   const [open, setOpen] = useState(false);
-  
-  // Parse initial value (expected format: "+code number")
-  const parseValue = (val) => {
-    if (!val) return { country: countries.find(c => c.code === defaultCountry) || countries[0], number: '' };
-    
-    // Find the longest matching phone prefix
-    const sortedCountries = [...countries].sort((a, b) => b.phone.length - a.phone.length);
-    for (const c of sortedCountries) {
-      if (val.startsWith(`+${c.phone}`)) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const inputRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Helper to parse existing phone value into country and national number digits
+  const parseValue = (val, defCountryCode) => {
+    const def =
+      countries.find((c) => c.code === defCountryCode) ||
+      countries.find((c) => c.code === 'MY') ||
+      countries[0];
+
+    if (!val || typeof val !== 'string') {
+      return { country: def, number: '' };
+    }
+
+    const digits = val.replace(/\D/g, '');
+    if (!digits) {
+      return { country: def, number: '' };
+    }
+
+    // Match longest dial prefix first
+    const sorted = [...countries].sort((a, b) => {
+      const aLen = a.phone.replace(/\D/g, '').length;
+      const bLen = b.phone.replace(/\D/g, '').length;
+      return bLen - aLen;
+    });
+
+    for (const c of sorted) {
+      const cDigits = c.phone.replace(/\D/g, '');
+      if (digits.startsWith(cDigits) && digits.length > cDigits.length) {
         return {
           country: c,
-          number: val.replace(`+${c.phone}`, '').trim()
+          number: digits.slice(cDigits.length),
         };
       }
     }
-    
-    return { country: countries.find(c => c.code === defaultCountry) || countries[0], number: val };
+
+    return { country: def, number: digits };
   };
 
-  const initialParsed = parseValue(value);
-  const [selectedCountry, setSelectedCountry] = useState(initialParsed.country);
-  const [phoneNumber, setPhoneNumber] = useState(initialParsed.number);
+  const initial = parseValue(value, defaultCountry);
+  const [selectedCountry, setSelectedCountry] = useState(initial.country);
+  const [phoneNumber, setPhoneNumber] = useState(initial.number);
 
-  useEffect(() => {
-    const newVal = `+${selectedCountry.phone}${phoneNumber}`;
-    if (newVal !== value) {
-      onChange(newVal);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCountry, phoneNumber]);
-
-  // Sync internal state with external value changes
+  // Sync state if external value changes (e.g. form reset, fetched data)
   useEffect(() => {
     if (value) {
-      const parsed = parseValue(value);
-      if (parsed.country.code !== selectedCountry.code || parsed.number !== phoneNumber) {
-        setSelectedCountry(parsed.country);
-        setPhoneNumber(parsed.number);
-      }
-    } else if (phoneNumber !== '') {
-      // Handle reset
+      const parsed = parseValue(value, defaultCountry);
+      setSelectedCountry(parsed.country);
+      setPhoneNumber(parsed.number);
+    } else {
       setPhoneNumber('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, defaultCountry]);
 
-  const handleNumberChange = (e) => {
-    const val = e.target.value.replace(/[^\d]/g, ''); // Only allow digits
-    setPhoneNumber(val);
+  // Focus search input when popover opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    } else {
+      setSearchQuery('');
+    }
+  }, [open]);
+
+  // Filter countries by name or phone code
+  const filteredCountries = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim().replace(/^\+/, '');
+    if (!q) return countries;
+    return countries.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.phone.replace(/\D/g, '').includes(q)
+    );
+  }, [searchQuery]);
+
+  const emitChange = (country, number) => {
+    if (!onChange) return;
+    const cleanDial = country.phone.replace(/\D/g, '');
+    const cleanDigits = number.replace(/\D/g, '');
+    const fullValue = cleanDigits ? `+${cleanDial}${cleanDigits}` : '';
+    onChange(fullValue);
   };
 
+  const handleSelectCountry = (country) => {
+    setSelectedCountry(country);
+    setOpen(false);
+    emitChange(country, phoneNumber);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  // Strictly allow only numbers (0-9) and control/navigation keys
+  const handleKeyDown = (e) => {
+    const allowedKeys = [
+      'Backspace',
+      'Delete',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Tab',
+      'Enter',
+      'Home',
+      'End',
+    ];
+
+    if (allowedKeys.includes(e.key)) {
+      return;
+    }
+
+    // Allow keyboard shortcuts (Ctrl/Cmd + A, C, V, X, Z)
+    if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z', 'y'].includes(e.key.toLowerCase())) {
+      return;
+    }
+
+    // Block any non-digit character (letters, spaces, symbols)
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  // Paste handler: strips letters, symbols and spaces, keeping only digits
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    const digitsOnly = pasted.replace(/\D/g, '');
+    if (!digitsOnly) return;
+
+    const input = e.target;
+    const start = input.selectionStart ?? phoneNumber.length;
+    const end = input.selectionEnd ?? phoneNumber.length;
+    const nextVal = (phoneNumber.slice(0, start) + digitsOnly + phoneNumber.slice(end)).slice(0, 15);
+
+    setPhoneNumber(nextVal);
+    emitChange(selectedCountry, nextVal);
+  };
+
+  // Change handler: defense in depth against autofill or virtual keyboards
+  const handleNumberChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 15);
+    setPhoneNumber(digits);
+    emitChange(selectedCountry, digits);
+  };
+
+  const isInvalid = Boolean(hasError || error);
+  const cleanDialCode = selectedCountry.phone.replace(/\D/g, '');
+
   return (
-    <div className={cn("flex gap-0 rounded-md border bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2", className)}>
+    <div
+      className={cn(
+        'relative flex items-center w-full rounded-lg border bg-white transition text-sm',
+        isInvalid
+          ? 'border-red-500 ring-2 ring-red-500/20'
+          : 'border-slate-200 focus-within:ring-2 focus-within:ring-[#0C447C] focus-within:border-transparent',
+        disabled && 'bg-slate-50 text-slate-400 cursor-not-allowed',
+        className
+      )}
+    >
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
+          <button
+            type="button"
             role="combobox"
             aria-expanded={open}
+            aria-label="Select country code"
             disabled={disabled}
-            className="h-10 px-3 rounded-none rounded-l-md border-r flex shrink-0 items-center gap-1 hover:bg-muted disabled:opacity-50"
+            className="h-[42px] px-3 rounded-l-lg border-r border-slate-200 flex shrink-0 items-center gap-1.5 hover:bg-slate-50 focus:outline-none text-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
+            title={`${selectedCountry.name} (+${cleanDialCode})`}
           >
-            <span className="text-lg">{selectedCountry.flag}</span>
-            <span className="text-sm font-medium text-muted-foreground">+{selectedCountry.phone}</span>
-            <ChevronsUpDown className="h-3 w-3 opacity-50" />
-          </Button>
+            <span className="text-lg leading-none" role="img" aria-label={selectedCountry.name}>
+              {selectedCountry.flag}
+            </span>
+            <span className="text-xs font-semibold text-slate-700">+{cleanDialCode}</span>
+            <ChevronsUpDown className="h-3 w-3 text-slate-400" />
+          </button>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search country code..." />
-            <CommandList>
-              <CommandEmpty>No country found.</CommandEmpty>
-              <CommandGroup>
-                {countries.map((country) => (
-                  <CommandItem
-                    key={country.code}
-                    value={`${country.name} ${country.phone}`}
-                    onSelect={() => {
-                      setSelectedCountry(country);
-                      setOpen(false);
-                    }}
+
+        <PopoverContent className="w-72 p-0 bg-white shadow-xl border border-slate-200 rounded-xl" align="start">
+          {/* Search box */}
+          <div className="p-2 border-b border-slate-100 flex items-center gap-2">
+            <Search className="h-4 w-4 text-slate-400 shrink-0 ml-1" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search country or code..."
+              className="w-full text-xs bg-transparent outline-none placeholder:text-slate-400 py-1"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-slate-400 hover:text-slate-600 p-0.5"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Country list */}
+          <div className="max-h-60 overflow-y-auto py-1 divide-y divide-slate-50">
+            {filteredCountries.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">No country found</div>
+            ) : (
+              filteredCountries.map((c) => {
+                const isSelected = selectedCountry.code === c.code;
+                const dial = c.phone.replace(/\D/g, '');
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleSelectCountry(c)}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs transition hover:bg-slate-50',
+                      isSelected && 'bg-blue-50/70 font-semibold text-[#0C447C]'
+                    )}
                   >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedCountry.code === country.code ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <span className="mr-2 text-lg">{country.flag}</span>
-                    <span className="flex-1">{country.name}</span>
-                    <span className="text-muted-foreground">+{country.phone}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+                    <span className="text-base shrink-0 leading-none" role="img" aria-label={c.name}>
+                      {c.flag}
+                    </span>
+                    <span className="flex-1 truncate text-slate-800">{c.name}</span>
+                    <span className="text-slate-500 shrink-0 font-mono text-[11px]">+{dial}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-[#0C447C] shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </PopoverContent>
       </Popover>
-      <Input
+
+      <input
+        ref={inputRef}
+        id={id}
+        name={name}
         type="tel"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        autoComplete="tel-national"
+        maxLength={15}
+        required={required}
+        disabled={disabled}
         value={phoneNumber}
         onChange={handleNumberChange}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        onBlur={onBlur}
+        onFocus={onFocus}
         placeholder={placeholder}
-        disabled={disabled}
-        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none rounded-r-md h-10"
+        className="w-full h-[42px] px-3.5 py-2 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none rounded-r-lg disabled:cursor-not-allowed"
       />
     </div>
   );

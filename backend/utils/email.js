@@ -40,6 +40,32 @@ const getSmtpTransporter = () => {
   return smtpTransporter;
 };
 
+const hasSmtpFallback = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+const sendViaSmtp = async (to, subject, htmlContent) => {
+  const info = await getSmtpTransporter().sendMail({ from: getSender(), to, subject, html: htmlContent });
+  return { success: true, provider: 'smtp', messageId: info.messageId };
+};
+
+// Cache Brevo relay status for 5 minutes so we know when Brevo silently drops emails ("sending platform disabled")
+let brevoRelayStatus = { checkedAt: 0, enabled: true };
+const isBrevoRelayEnabled = async () => {
+  const now = Date.now();
+  if (now - brevoRelayStatus.checkedAt < 5 * 60 * 1000) {
+    return brevoRelayStatus.enabled;
+  }
+  const res = await fetch('https://api.brevo.com/v3/account', {
+    headers: { 'api-key': process.env.BREVO_API_KEY, Accept: 'application/json' }
+  });
+  if (!res.ok) {
+    throw new Error(`Brevo rejected the email (${res.status}): ${await res.text()}`);
+  }
+  const data = await res.json();
+  const enabled = Boolean(data?.relay?.enabled);
+  brevoRelayStatus = { checkedAt: now, enabled };
+  return enabled;
+};
+
 // Sends one email. Throws when the provider rejects it, so callers decide whether that matters.
 const sendEmail = async (to, subject, htmlContent) => {
   const provider = getProvider();
@@ -52,19 +78,31 @@ const sendEmail = async (to, subject, htmlContent) => {
   }
 
   if (provider === 'brevo') {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': process.env.BREVO_API_KEY,
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify({ sender: parseSender(), to: [{ email: to }], subject, htmlContent })
-    });
-    if (!response.ok) {
-      throw new Error(`Brevo rejected the email (${response.status}): ${await response.text()}`);
+    try {
+      const relayEnabled = await isBrevoRelayEnabled();
+      if (!relayEnabled) {
+        throw new Error('Brevo transactional sending platform is disabled on this account (relay.enabled = false)');
+      }
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: JSON.stringify({ sender: parseSender(), to: [{ email: to }], subject, htmlContent })
+      });
+      if (!response.ok) {
+        throw new Error(`Brevo rejected the email (${response.status}): ${await response.text()}`);
+      }
+      return { success: true, provider };
+    } catch (brevoErr) {
+      if (hasSmtpFallback()) {
+        console.warn(`⚠️  ${brevoErr.message} — falling back to SMTP (${process.env.SMTP_HOST})`);
+        return sendViaSmtp(to, subject, htmlContent);
+      }
+      throw brevoErr;
     }
-    return { success: true, provider };
   }
 
   if (provider === 'resend') {
@@ -82,8 +120,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     return { success: true, provider };
   }
 
-  const info = await getSmtpTransporter().sendMail({ from: getSender(), to, subject, html: htmlContent });
-  return { success: true, provider, messageId: info.messageId };
+  return sendViaSmtp(to, subject, htmlContent);
 };
 
 const escapeHtml = (value) => String(value ?? '')

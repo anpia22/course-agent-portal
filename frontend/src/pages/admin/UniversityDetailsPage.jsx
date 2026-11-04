@@ -238,7 +238,7 @@ const UniversityDetailsPage = () => {
           {!staffView && isActive && (
             <Button
               size="sm"
-              onClick={() => navigate(`/agent/applications?university=${university.id}`)}
+              onClick={() => navigate(`/agent/students?action=register&university=${university.id}`)}
               className="bg-[#042C53] hover:bg-[#0C447C] text-white text-xs h-9 px-4 gap-1.5"
             >
               Apply a student <ArrowRight className="w-3.5 h-3.5" />

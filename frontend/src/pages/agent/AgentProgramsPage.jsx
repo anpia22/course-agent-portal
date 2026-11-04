@@ -24,10 +24,29 @@ import {
 } from '../../components/ui/select';
 import UniversityLogo from '../../components/university/UniversityLogo';
 import { courseAPI, universityAPI, formatApiError } from '../../utils/api';
-import { readFee } from '../../utils/programFee';
+import { readFee, extractNationalityFees } from '../../utils/programFee';
 import { toast } from 'sonner';
 
-const LEVELS = ['Undergraduate', 'Postgraduate', 'Diploma', 'Doctorate', 'Certificate'];
+const LEVELS = [
+  { value: 'Foundation', label: 'Foundation' },
+  { value: 'Diploma', label: 'Diploma' },
+  { value: 'Bachelor', label: 'Bachelor / Degree' },
+  { value: 'Master', label: 'Master' },
+  { value: 'PhD', label: 'PhD / Doctorate' },
+  { value: 'Certificate', label: 'Certificate' },
+];
+
+const SUBJECT_FIELDS = [
+  { value: 'Business', label: 'Business & Management' },
+  { value: 'Information Technology', label: 'IT & Computer Science' },
+  { value: 'Accounting', label: 'Accounting & Finance' },
+  { value: 'Engineering', label: 'Engineering & Built Environment' },
+  { value: 'Hospitality', label: 'Hospitality, Tourism & Culinary' },
+  { value: 'Health', label: 'Allied Health, Nursing & Pharmacy' },
+  { value: 'Arts', label: 'Arts, Design & Media' },
+  { value: 'Law', label: 'Law & Social Sciences' },
+];
+
 const loadAllUniversities = async () => {
   const all = [];
   let page = 1;
@@ -54,6 +73,7 @@ const AgentProgramsPage = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
+  const [fieldFilter, setFieldFilter] = useState('all');
   const [universityFilter, setUniversityFilter] = useState('all');
   const [debouncedSearch, flushSearch] = useDebouncedValue(searchQuery);
   const requestIdRef = useRef(0);
@@ -71,6 +91,7 @@ const AgentProgramsPage = () => {
       const params = { page, limit };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (levelFilter !== 'all') params.level = levelFilter;
+      if (fieldFilter !== 'all') params.department = fieldFilter;
       if (universityFilter !== 'all') params.universityId = universityFilter;
 
       const { data } = await courseAPI.getAll(params);
@@ -85,7 +106,7 @@ const AgentProgramsPage = () => {
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [debouncedSearch, levelFilter, universityFilter, limit]);
+  }, [debouncedSearch, levelFilter, fieldFilter, universityFilter, limit]);
 
   useEffect(() => {
     loadPrograms(1);
@@ -95,25 +116,26 @@ const AgentProgramsPage = () => {
     setSearchQuery('');
     flushSearch('');
     setLevelFilter('all');
+    setFieldFilter('all');
     setUniversityFilter('all');
   };
 
   const apply = (program) => {
     const university = program.university;
     navigate(university
-      ? `/agent/applications?university=${university.id}&course=${program.id}`
-      : `/agent/applications?course=${program.id}`);
+      ? `/agent/students?action=register&university=${university.id}&course=${program.id}`
+      : `/agent/students?action=register&course=${program.id}`);
   };
 
-  const hasFilters = searchQuery || levelFilter !== 'all' || universityFilter !== 'all';
+  const hasFilters = searchQuery || levelFilter !== 'all' || fieldFilter !== 'all' || universityFilter !== 'all';
 
   return (
     <div className="p-4 sm:p-6 bg-[#F9FAFB] min-h-screen space-y-6" data-testid="agent-programs-page">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">Programs</h1>
+          <h1 className="text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight">Programs & Courses</h1>
           <p className="text-xs text-gray-500 mt-1 font-medium">
-            Find the right program for your student, see the price, then apply.
+            Search Malaysian university programs by qualification level, subject field, or university, then apply directly.
           </p>
         </div>
         <div className="text-xs text-gray-600 bg-white border border-gray-200 px-3.5 py-2 rounded-lg font-medium w-fit">
@@ -123,7 +145,7 @@ const AgentProgramsPage = () => {
 
       {/* Filters */}
       <Card className="border-[#E5E7EB] bg-white shadow-none">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <form
             onSubmit={(e) => { e.preventDefault(); flushSearch(searchQuery); }}
             className="flex flex-col lg:flex-row gap-3"
@@ -133,26 +155,35 @@ const AgentProgramsPage = () => {
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by program name, code or faculty..."
+                placeholder="Search by program name, code or course subject (e.g. Business, IT, Accounting)..."
                 className="pl-9 text-xs bg-[#F9FAFB] border-gray-200"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className="w-full sm:w-[160px] text-xs bg-[#F9FAFB] border-gray-200">
-                  <SelectValue placeholder="Level" />
+                <SelectTrigger className="w-full sm:w-[170px] text-xs bg-[#F9FAFB] border-gray-200">
+                  <SelectValue placeholder="Program Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All levels</SelectItem>
-                  {LEVELS.map((level) => <SelectItem key={level} value={level}>{level}</SelectItem>)}
+                  <SelectItem value="all">All Program Levels</SelectItem>
+                  {LEVELS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={fieldFilter} onValueChange={setFieldFilter}>
+                <SelectTrigger className="w-full sm:w-[200px] text-xs bg-[#F9FAFB] border-gray-200">
+                  <SelectValue placeholder="Course / Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subject Fields</SelectItem>
+                  {SUBJECT_FIELDS.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={universityFilter} onValueChange={setUniversityFilter}>
-                <SelectTrigger className="w-full sm:w-[220px] text-xs bg-[#F9FAFB] border-gray-200">
+                <SelectTrigger className="w-full sm:w-[210px] text-xs bg-[#F9FAFB] border-gray-200">
                   <SelectValue placeholder="University" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
-                  <SelectItem value="all">All universities</SelectItem>
+                  <SelectItem value="all">All Malaysian Universities</SelectItem>
                   {universities.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -162,6 +193,32 @@ const AgentProgramsPage = () => {
               )}
             </div>
           </form>
+
+          {/* Quick Level Chips */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Level:</span>
+            <button
+              type="button"
+              onClick={() => setLevelFilter('all')}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+                levelFilter === 'all' ? 'bg-[#042C53] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            {LEVELS.map((l) => (
+              <button
+                key={l.value}
+                type="button"
+                onClick={() => setLevelFilter(l.value)}
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+                  levelFilter === l.value ? 'bg-[#042C53] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -185,6 +242,7 @@ const AgentProgramsPage = () => {
         <div className="space-y-4">
           {programs.map((program) => {
             const fee = readFee(program.tuitionFee);
+            const natTiers = extractNationalityFees(program.description);
             const extra = (program.universityIds || []).length - 1;
             return (
               <div
@@ -207,6 +265,11 @@ const AgentProgramsPage = () => {
                     {program.code && (
                       <span className="border border-gray-200 text-gray-600 text-xs font-mono font-semibold px-3 py-1.5 rounded-lg">{program.code}</span>
                     )}
+                    {natTiers.length > 0 && (
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                        Nationality Rates Available ({natTiers.length})
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="text-xl font-bold text-[#111827] font-['Outfit'] leading-snug">
@@ -227,16 +290,12 @@ const AgentProgramsPage = () => {
                         >
                           {program.university.name}
                         </button>
-                        {program.university.country && (
-                          <>
-                            <span className="text-gray-300">•</span>
-                            <span>{program.university.country}</span>
-                          </>
-                        )}
+                        <span className="text-gray-300">•</span>
+                        <span>Malaysia</span>
                         {extra > 0 && <Badge variant="outline" className="text-[10px] font-semibold">+{extra} more {extra === 1 ? 'university' : 'universities'}</Badge>}
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-2 font-medium"><Building2 size={16} className="text-gray-400" /> Offered by all universities</span>
+                      <span className="inline-flex items-center gap-2 font-medium"><Building2 size={16} className="text-gray-400" /> Offered by partner Malaysian universities</span>
                     )}
                   </div>
 
@@ -246,8 +305,25 @@ const AgentProgramsPage = () => {
                 {/* Price and action */}
                 <div className="flex items-center gap-5 md:pl-6 md:border-l border-gray-200 shrink-0">
                   <div>
-                    <p className="text-xs text-gray-500">Tuition</p>
-                    <p className="text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">{fee ? fee.text : 'On request'}</p>
+                    <p className="text-xs text-gray-500">Tuition Fee</p>
+                    {fee ? (
+                      fee.hasDual ? (
+                        <div className="space-y-1 mt-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-50 text-[#042C53]">Intl</span>
+                            <span className="text-base font-bold text-[#111827] font-['Outfit'] whitespace-nowrap">{fee.international.text}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">Local</span>
+                            <span className="text-sm font-bold text-emerald-800 font-['Outfit'] whitespace-nowrap">{fee.local.text}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">{fee.text}</p>
+                      )
+                    ) : (
+                      <p className="text-2xl font-bold text-[#111827] font-['Outfit'] mt-0.5 whitespace-nowrap">On request</p>
+                    )}
                   </div>
                   <Button
                     variant="outline"

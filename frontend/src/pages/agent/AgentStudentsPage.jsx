@@ -1,20 +1,22 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search, Plus, Download, GraduationCap, Mail, Phone,
   ChevronRight, FileText, CheckCircle2, AlertCircle,
   X, MessageSquare, LayoutGrid, List, Filter,
   ArrowRight, User, MapPin, Upload, ArrowUpRight,
   Eye,
-  MessageCircle, Clock, XCircle, Shield
+  MessageCircle, Clock, XCircle, Shield, Briefcase
 } from 'lucide-react';
+import ApplicationModal from '../../components/modals/ApplicationModal';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { STUDENT_FUNNEL, STUDENT_JOURNEY, getFunnelKey, getStageLabel, getStudentJourneyIndex, getStudentStageInfo } from '../../utils/studentProgress';
+import { STUDENT_FUNNEL, STUDENT_JOURNEY, VISA_SUBSTAGE_CHIPS, getFunnelKey, getStageLabel, getStudentJourneyIndex, getStudentStageInfo } from '../../utils/studentProgress';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent } from '../../components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 
 import { cn } from '../../lib/utils';
 import StudentRegistrationModal from '../../components/modals/StudentRegistrationModal';
@@ -49,10 +51,31 @@ const AgentStudentsPage = () => {
   const [universityFilter, setUniversityFilter] = useState('all');
   const [docFilter, setDocFilter] = useState('all');
   const [curStage, setCurStage] = useState('all');
+  const [subStageFilter, setSubStageFilter] = useState('all');
+  const [visaPopupOpen, setVisaPopupOpen] = useState(false);
   const [verificationFilter, setVerificationFilter] = useState('all');
   const [displayMode, setDisplayMode] = useState('table'); // 'table' or 'grid'
   const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paramUni = searchParams.get('university') || '';
+  const paramCourse = searchParams.get('course') || '';
+  const paramAction = searchParams.get('action');
+
+  const [showAddModal, setShowAddModal] = useState(paramAction === 'register' || Boolean(paramUni || paramCourse));
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+
+  const handleCloseModal = (open) => {
+    setShowAddModal(open);
+    if (!open && (paramUni || paramCourse || paramAction)) {
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('university');
+        next.delete('course');
+        next.delete('action');
+        return next;
+      }, { replace: true });
+    }
+  };
   const [isUploading, setIsUploading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState(null);
   const fileInputRef = useRef(null);
@@ -196,12 +219,21 @@ const AgentStudentsPage = () => {
       }
       if (docFilter !== 'all' && getDocStatus(s) !== docFilter) return false;
       if (curStage !== 'all' && getFunnelKey(s) !== curStage) return false;
+      if (subStageFilter !== 'all' && (s.pipelineStage || 'Application') !== subStageFilter) return false;
       if (verificationFilter !== 'all' && (s.verificationStatus || 'Pending') !== verificationFilter) return false;
 
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myStudents, searchQuery, universityFilter, docFilter, curStage, verificationFilter, getUniversityName]);
+  }, [myStudents, searchQuery, universityFilter, docFilter, curStage, subStageFilter, verificationFilter, getUniversityName]);
+
+  const subStageCounts = useMemo(() => {
+    const counts = {};
+    VISA_SUBSTAGE_CHIPS.forEach(ch => {
+      counts[ch.key] = myStudents.filter(s => (s.pipelineStage || 'Application') === ch.key).length;
+    });
+    return counts;
+  }, [myStudents]);
 
   const kpis = useMemo(() => {
     const total = myStudents.length;
@@ -286,10 +318,10 @@ const AgentStudentsPage = () => {
       </div>
 
       {/* KPI Pipeline Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
         <div
-          className={`cursor-pointer p-4 rounded-xl border transition-all ${curStage === 'all' ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-          onClick={() => setCurStage('all')}
+          className={`cursor-pointer p-4 rounded-xl border transition-all ${curStage === 'all' && subStageFilter === 'all' ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+          onClick={() => { setCurStage('all'); setSubStageFilter('all'); }}
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-gray-400" />
@@ -302,17 +334,75 @@ const AgentStudentsPage = () => {
           <div
             key={group.key}
             className={`cursor-pointer p-4 rounded-xl border transition-all ${curStage === group.key ? 'bg-white border-[#378ADD] shadow-md ring-1 ring-[#378ADD]/20' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-            onClick={() => setCurStage(group.key)}
+            onClick={() => {
+              setCurStage(group.key);
+              setSubStageFilter('all');
+              if (group.key === 'InVisa') setVisaPopupOpen(true);
+            }}
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.color }} />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{group.label}</span>
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{group.label}</span>
             </div>
             <div className="text-2xl font-bold text-[#111827] font-['Outfit']">{kpis[group.key] || 0}</div>
-            <p className="text-[10px] text-gray-400 mt-1 font-medium">{group.hint}</p>
+            <p className="text-xs text-gray-500 mt-1">{group.hint}</p>
           </div>
         ))}
       </div>
+
+      {subStageFilter !== 'all' && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs text-[#4B5563]">
+            Filtered by stage: <strong className="text-[#042C53]">{VISA_SUBSTAGE_CHIPS.find(c => c.key === subStageFilter)?.label || subStageFilter}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setSubStageFilter('all')}
+            className="text-xs font-semibold text-rose-600 hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
+      {/* Pop-up for Visa in Process Details */}
+      <Dialog open={visaPopupOpen} onOpenChange={setVisaPopupOpen}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-200 space-y-1">
+            <DialogTitle className="font-['Outfit'] text-lg">Visa in process</DialogTitle>
+            <DialogDescription>Select a visa stage to filter students or view stage numbers</DialogDescription>
+          </DialogHeader>
+          <div className="px-6 py-5 max-h-[65vh] overflow-y-auto">
+            <ul className="space-y-3">
+              {VISA_SUBSTAGE_CHIPS.map((chip) => {
+                const cnt = subStageCounts[chip.key] || 0;
+                const active = subStageFilter === chip.key;
+                return (
+                  <li key={chip.key}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurStage('all');
+                        setSubStageFilter(active ? 'all' : chip.key);
+                        setVisaPopupOpen(false);
+                      }}
+                      className={cn(
+                        'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all',
+                        active
+                          ? 'bg-[#042C53] text-white border-[#042C53]'
+                          : 'bg-gray-50 hover:bg-white text-[#374151] border-gray-200 hover:border-[#042C53]'
+                      )}
+                    >
+                      <span>{chip.label}</span>
+                      <span className={cn('font-bold tabular-nums', active ? 'text-white' : 'text-[#111827]')}>{cnt}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -392,14 +482,13 @@ const AgentStudentsPage = () => {
             <table className="w-full border-collapse text-sm text-left">
               <thead>
                 <tr className="bg-[#F9FAFB] border-b border-gray-100">
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">University</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Country</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Documents</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Registered</th>
-                  <th className="px-6 py-4 w-[80px]"></th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Course & University</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pipeline Stage</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Documents</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Registered</th>
+                  <th className="px-6 py-4 w-[60px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -413,7 +502,7 @@ const AgentStudentsPage = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xs font-bold shadow-sm">
+                          <div className="w-9 h-9 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
                             {getInitials(getStudentName(s))}
                           </div>
                           <div className="min-w-0">
@@ -422,26 +511,30 @@ const AgentStudentsPage = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-600 truncate max-w-[130px]" title={getUniversityName(s)}>
-                        {getUniversityName(s)}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-600">
-                        {s.country || s.customFields?.country || 'N/A'}
-                      </td>
                       <td className="px-6 py-4">
-                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider ${getStudentStageInfo(s).style}`}>
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-[#111827] truncate">
+                            {s.applications?.[0]?.courseName || s.courseInterested || 'General Course'}
+                          </div>
+                          <div className="text-[11px] text-gray-500 truncate mt-0.5" title={getUniversityName(s)}>
+                            {getUniversityName(s)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap ${getStudentStageInfo(s).style}`}>
                           {getStudentStageInfo(s).label}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {getVerificationBadge(s.verificationStatus || 'Pending')}
                       </td>
-                      <td className="px-6 py-4">
-                        {docStatus === 'complete' && <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase bg-[#EAF3DE] text-[#27500A]">Complete</span>}
-                        {docStatus === 'missing' && <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
-                        {docStatus === 'pending' && <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase bg-[#FAEEDA] text-[#633806]">Pending</span>}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {docStatus === 'complete' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#EAF3DE] text-[#27500A]">Complete</span>}
+                        {docStatus === 'missing' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
+                        {docStatus === 'pending' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FAEEDA] text-[#633806]">Pending</span>}
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-500">
+                      <td className="px-6 py-4 text-xs font-medium text-gray-500 whitespace-nowrap">
                         {new Date(s.createdAt || s.submittedAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
@@ -453,7 +546,7 @@ const AgentStudentsPage = () => {
                   );
                 }) : (
                   <tr>
-                    <td colSpan="8" className="px-6 py-20 text-center text-gray-400 italic">
+                    <td colSpan="7" className="px-6 py-20 text-center text-gray-400 italic">
                       <User size={48} className="mx-auto mb-3 opacity-20" />
                       No students match your current filters.
                     </td>
@@ -522,7 +615,25 @@ const AgentStudentsPage = () => {
       {/* Registration Modal */}
       <StudentRegistrationModal
         open={showAddModal}
-        onOpenChange={setShowAddModal}
+        onOpenChange={handleCloseModal}
+        defaultUniversityId={paramUni}
+        defaultCourseId={paramCourse}
+        onSuccess={() => {
+          fetchStudents();
+        }}
+      />
+
+      {/* Application Modal for existing student */}
+      <ApplicationModal
+        open={applyModalOpen}
+        onOpenChange={setApplyModalOpen}
+        application={null}
+        defaultUniversityId={selectedStudent?.universityId || selectedStudent?.customFields?.universityId || ''}
+        defaultCourseId={selectedStudent?.customFields?.courseId || ''}
+        onSuccess={() => {
+          fetchStudents();
+          setApplyModalOpen(false);
+        }}
       />
 
       {/* Detail Panel Overlay */}
@@ -592,10 +703,70 @@ const AgentStudentsPage = () => {
             </div>
 
             <div className="p-6 md:p-8 space-y-10">
+              {/* Associated Application & Visa Tracking */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <Briefcase size={12} className="text-[#042C53]" />
+                    Associated Application & Visa Tracking
+                  </h4>
+                  <Badge variant="outline" className="text-[10px] font-bold">
+                    {selectedStudent.applications?.length || 0} {selectedStudent.applications?.length === 1 ? 'Application' : 'Applications'}
+                  </Badge>
+                </div>
+
+                {selectedStudent.applications && selectedStudent.applications.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedStudent.applications.map(app => (
+                      <div key={app.id || app._id} className="p-4 rounded-xl border border-gray-200 bg-white hover:border-[#042C53] transition-all shadow-sm">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <span className="text-[11px] font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-md font-mono">
+                              {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
+                            </span>
+                            <h5 className="font-bold text-[#111827] text-sm mt-1">{app.courseName || selectedStudent.courseInterested || 'Course'}</h5>
+                            <p className="text-xs text-gray-500 font-medium">{app.university?.name || getUniversityName(selectedStudent)}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                              {app.pipelineStage || app.status || 'Submitted'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-3">
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            Applied: {new Date(app.createdAt || selectedStudent.createdAt).toLocaleDateString()}
+                          </span>
+                          <Button
+                            size="sm"
+                            className="h-8 px-3 text-xs bg-[#042C53] hover:bg-[#0C447C] text-white font-semibold gap-1"
+                            onClick={() => navigate(`/agent/applications/${app.id || app._id}`)}
+                          >
+                            View Application <ArrowUpRight size={13} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border border-dashed border-gray-200 bg-[#F9FAFB] text-center">
+                    <p className="text-xs text-gray-500 font-medium mb-3">No course application on record for this student.</p>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs bg-[#042C53] hover:bg-[#0C447C] text-white font-bold"
+                      onClick={() => setApplyModalOpen(true)}
+                    >
+                      <Plus size={12} className="mr-1" /> Apply For Course
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {/* Journey Tracker */}
               <div>
                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6">Student Journey Progress</h4>
-                <div className="flex items-start">
+                <div className="flex items-start z-10">
                   {STUDENT_JOURNEY.map((stage, idx) => {
                     const currentIdx = getStudentJourneyIndex(selectedStudent);
                     const isLast = idx === STUDENT_JOURNEY.length - 1;
@@ -604,21 +775,21 @@ const AgentStudentsPage = () => {
                     const isActive = idx === currentIdx && !isLast;
                     return (
                       <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
-                          {idx > 0 && (
-                            <div className={`absolute top-[18px] -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-100'}`} />
-                          )}
-                          <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' :
-                            isActive ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/50 shadow-sm' :
-                              'bg-white border-gray-100 text-gray-300'
-                            }`}>
-                            {isDone ? <CheckCircle2 size={16} /> : idx + 1}
-                          </div>
-                          <span className={`text-[10px] leading-tight mt-3 px-0.5 font-bold text-center break-words ${isDone ? 'text-[#27500A]' :
-                            isActive ? 'text-[#0C447C]' :
-                              'text-gray-300'
-                            }`}>
-                            {getStageLabel(stage)}
-                          </span>
+                        {idx > 0 && (
+                          <div className={`absolute top-[18px] -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-100'}`} />
+                        )}
+                        <div className={`relative z-1 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' :
+                          isActive ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/50 shadow-sm' :
+                            'bg-white border-gray-100 text-gray-300'
+                          }`}>
+                          {isDone ? <CheckCircle2 size={16} /> : idx + 1}
+                        </div>
+                        <span className={`text-[10px] leading-tight mt-3 px-0.5 font-bold text-center break-words ${isDone ? 'text-[#27500A]' :
+                          isActive ? 'text-[#0C447C]' :
+                            'text-gray-300'
+                          }`}>
+                          {getStageLabel(stage)}
+                        </span>
                       </div>
                     );
                   })}
@@ -678,13 +849,12 @@ const AgentStudentsPage = () => {
                           </div>
                           {doc ? (
                             <div className="flex items-center gap-2">
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                isApproved ? 'bg-[#EAF3DE] text-[#27500A]' :
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isApproved ? 'bg-[#EAF3DE] text-[#27500A]' :
                                 isCorrection ? 'bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]' :
-                                isRejected ? 'bg-[#FCEBEB] text-[#791F1F]' :
-                                isUnderReview ? 'bg-[#E6F1FB] text-[#0C447C]' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
+                                  isRejected ? 'bg-[#FCEBEB] text-[#791F1F]' :
+                                    isUnderReview ? 'bg-[#E6F1FB] text-[#0C447C]' :
+                                      'bg-gray-100 text-gray-700'
+                                }`}>
                                 {DOC_STATUS_LABELS[doc.status] || doc.status || 'Submitted'}
                               </span>
                               <Button
@@ -732,9 +902,8 @@ const AgentStudentsPage = () => {
 
                         {/* Reviewer remarks / reason callout for Agent */}
                         {doc?.remarks && (isCorrection || isRejected) && (
-                          <div className={`mt-3 p-2.5 rounded-xl text-xs border ${
-                            isCorrection ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-red-50/80 border-red-200 text-red-900'
-                          }`}>
+                          <div className={`mt-3 p-2.5 rounded-xl text-xs border ${isCorrection ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-red-50/80 border-red-200 text-red-900'
+                            }`}>
                             <span className="font-bold text-[10px] uppercase block mb-0.5">
                               {isCorrection ? 'More Information Requested By Admin:' : 'Rejection Reason:'}
                             </span>
@@ -824,15 +993,15 @@ const AgentStudentsPage = () => {
                     variant="outline"
                     className="h-11 text-xs font-bold border-gray-200 hover:bg-[#F3F4F6] hover:text-[#111827]"
                     onClick={() => {
-                      navigate('/agent/support', { 
-                        state: { 
-                          openNewTicket: true, 
-                          prefill: { 
+                      navigate('/agent/support', {
+                        state: {
+                          openNewTicket: true,
+                          prefill: {
                             subject: `Student Issue: ${getStudentName(selectedStudent)}`,
                             category: 'Student-Related',
                             description: `Support requested for student ${getStudentName(selectedStudent)} (ID: ${selectedStudent.id || selectedStudent._id}).`
-                          } 
-                        } 
+                          }
+                        }
                       });
                     }}
                   >

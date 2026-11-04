@@ -127,8 +127,21 @@ const InviteAgentDialog = ({ open, onOpenChange }) => {
             </div>
             <p className="text-xs text-muted-foreground">
               {created.emailSent ? `Also emailed to ${created.email}. ` : ''}
-              Expires {new Date(created.expiresAt).toLocaleDateString()}. This link is shown only once, so copy it now.
+              Expires {new Date(created.expiresAt).toLocaleDateString()}. Agents registering via this link are automatically assigned to {canPickManager ? 'the selected Account Manager' : 'your Account Manager workspace'}.
             </p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 flex items-center gap-4">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(created.link)}`}
+                alt="Registration QR Code"
+                className="w-24 h-24 rounded-lg border border-slate-200 bg-white p-1 shrink-0"
+              />
+              <div className="space-y-1 text-xs text-slate-600">
+                <p className="font-bold text-slate-900">Mobile QR Code & 3-Step Registration Guide</p>
+                <p>1. Scan QR or open link to create login & enter Agency Name + PIC details.</p>
+                <p>2. Enter Bank Account / SWIFT details for commission payouts.</p>
+                <p>3. Upload any 1 verification document (SSM / Company Profile / Passport).</p>
+              </div>
+            </div>
             <Button type="button" variant="outline" size="sm" onClick={() => { setCreated(null); setForm(EMPTY_FORM); }}>
               Create another
             </Button>

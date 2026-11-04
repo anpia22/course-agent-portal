@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CheckCircle2, Circle, Eye, FileSignature, Award, RefreshCw, X } from 'lucide-react';
+import { CheckCircle2, Circle, Eye, FileSignature, Award, RefreshCw, X, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +14,123 @@ const formatDate = (d) =>
 
 const MAX_SIZE = 10 * 1024 * 1024;
 const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
+
+// Generates a branded QStudy Authorized Recruitment Partner E-Certificate image File on canvas
+const generateECertificateFile = ({ agencyName, agentCode, issueDate, validUntil }) =>
+  new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1600;
+      canvas.height = 1130;
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Outer Navy Border
+      ctx.strokeStyle = '#042C53';
+      ctx.lineWidth = 18;
+      ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+      // Inner Gold Accent Border
+      ctx.strokeStyle = '#D97706';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(64, 64, canvas.width - 128, canvas.height - 128);
+
+      // Top Header Banner
+      ctx.fillStyle = '#042C53';
+      ctx.fillRect(64, 64, canvas.width - 128, 150);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 44px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('QSTUDY MALAYSIA', canvas.width / 2, 135);
+
+      ctx.fillStyle = '#FCD34D';
+      ctx.font = 'bold 18px Arial, sans-serif';
+      ctx.fillText('OFFICIAL AUTHORIZED RECRUITMENT PARTNER E-CERTIFICATE', canvas.width / 2, 178);
+
+      // Main Title
+      ctx.fillStyle = '#6B7280';
+      ctx.font = 'italic 24px Georgia, serif';
+      ctx.fillText('This is to certify that', canvas.width / 2, 310);
+
+      // Agency Name
+      ctx.fillStyle = '#042C53';
+      ctx.font = 'bold 54px Georgia, serif';
+      ctx.fillText(agencyName || 'Authorized Recruitment Agency', canvas.width / 2, 395);
+
+      // Divider line under agency name
+      ctx.strokeStyle = '#D97706';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(350, 425);
+      ctx.lineTo(canvas.width - 350, 425);
+      ctx.stroke();
+
+      // Recognition statement
+      ctx.fillStyle = '#374151';
+      ctx.font = '24px Arial, sans-serif';
+      ctx.fillText(
+        'is an officially appointed and authorized international student recruitment partner',
+        canvas.width / 2,
+        495
+      );
+      ctx.fillText(
+        'representing QStudy Malaysia Partner Universities & Higher Education Institutions.',
+        canvas.width / 2,
+        535
+      );
+
+      // Metadata Boxes (Partner ID, Issue Date, Valid Until)
+      const boxes = [
+        { label: 'PARTNER AGENT ID', value: agentCode || 'QS-PARTNER' },
+        { label: 'DATE OF ISSUE', value: issueDate || new Date().toISOString().slice(0, 10) },
+        { label: 'VALID UNTIL', value: validUntil || '1 Year from Issue' },
+      ];
+
+      boxes.forEach((b, idx) => {
+        const boxW = 340;
+        const boxH = 115;
+        const gap = 50;
+        const startX = (canvas.width - (boxW * 3 + gap * 2)) / 2;
+        const x = startX + idx * (boxW + gap);
+        const y = 620;
+
+        ctx.fillStyle = '#F9FAFB';
+        ctx.fillRect(x, y, boxW, boxH);
+        ctx.strokeStyle = '#E5E7EB';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, boxW, boxH);
+
+        ctx.fillStyle = '#6B7280';
+        ctx.font = 'bold 14px Arial, sans-serif';
+        ctx.fillText(b.label, x + boxW / 2, y + 40);
+
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText(b.value, x + boxW / 2, y + 82);
+      });
+
+      // Signature & Seal Footer
+      ctx.fillStyle = '#042C53';
+      ctx.font = 'bold 22px Georgia, serif';
+      ctx.fillText('Head of Admission & Partnerships', canvas.width / 2, 915);
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '16px Arial, sans-serif';
+      ctx.fillText('QStudy Global Education Portal · Malaysia', canvas.width / 2, 948);
+
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error('Could not generate E-Certificate image'));
+        const safeName = String(agencyName || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        const file = new File([blob], `QStudy-ECertificate-${safeName}.png`, { type: 'image/png' });
+        resolve(file);
+      }, 'image/png');
+    } catch (err) {
+      reject(err);
+    }
+  });
 
 // Shows what was picked, with a local preview (nothing is sent) and a way to drop a wrong pick
 const PickedFile = ({ file, onClear }) => {
@@ -43,7 +160,7 @@ const PickedFile = ({ file, onClear }) => {
 
 /**
  * Staff view of an approved agent's agreement: issue the contract, upload the signed copy,
- * then issue the E-Certificate, which activates the agent.
+ * then issue (or auto-generate) the E-Certificate, which activates the agent.
  */
 const AgentContractPanel = ({ agent }) => {
   const { user } = useAuth();
@@ -56,6 +173,16 @@ const AgentContractPanel = ({ agent }) => {
   // Which upload is being redone: 'contract' | 'signed' | 'cert' | null
   const [replacing, setReplacing] = useState(null);
   const inputs = { contract: useRef(null), signed: useRef(null), cert: useRef(null) };
+
+  // Auto-generator fields for E-Certificate
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const nextYearStr = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  const [certAgencyName, setCertAgencyName] = useState(agent?.agencyName || agent?.name || '');
+  const [certIssueDate, setCertIssueDate] = useState(todayStr);
+  const [certValidUntil, setCertValidUntil] = useState(
+    agent?.contractExpiresAt ? String(agent.contractExpiresAt).slice(0, 10) : nextYearStr
+  );
+  const [generatingCert, setGeneratingCert] = useState(false);
 
   if (!canViewContract(user, agent)) return null;
   // Only the Head of Admission issues and uploads; Account Managers and the Head of Recruitment view
@@ -105,6 +232,24 @@ const AgentContractPanel = ({ agent }) => {
     clear(setSignedFile, 'signed')();
     clear(setCertFile, 'cert')();
     setExpiresAt('');
+  };
+
+  const handleAutoGenerateCert = async () => {
+    setGeneratingCert(true);
+    try {
+      const generated = await generateECertificateFile({
+        agencyName: certAgencyName.trim() || agent.agencyName || agent.name,
+        agentCode: agent.agentCode || agent.eCertificateNumber || 'QS-AUTHORIZED',
+        issueDate: certIssueDate,
+        validUntil: certValidUntil
+      });
+      setCertFile(generated);
+      toast.success('Official E-Certificate generated — click Preview to inspect or Issue to activate');
+    } catch {
+      toast.error('Failed to auto-generate E-Certificate');
+    } finally {
+      setGeneratingCert(false);
+    }
   };
 
   const issue = () => run(
@@ -205,21 +350,72 @@ const AgentContractPanel = ({ agent }) => {
           </div>
         )}
 
-        {/* 3. Issue the E-Certificate and activate */}
+        {/* 3. Issue or Auto-Generate the E-Certificate and activate */}
         {canManage && ((status === 'signed' && !agent.isActivated) || replacing === 'cert') && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-[#111827] flex items-center gap-2">
-              <Award className="w-4 h-4" /> {replacing === 'cert' ? 'Replace the E-Certificate' : 'Upload the E-Certificate and activate the agent'}
+          <div className="space-y-3 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3.5">
+            <p className="text-sm font-semibold text-[#111827] flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#042C53]" /> {replacing === 'cert' ? 'Replace the E-Certificate' : 'Generate or Upload E-Certificate & Activate Agent'}
             </p>
+
+            {/* Auto-Generator Box */}
+            <div className="space-y-2 rounded-lg bg-white p-3 border border-slate-200">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#042C53] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> Auto-Generate Branded E-Certificate
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-600">Agency Legal Name</label>
+                  <Input
+                    value={certAgencyName}
+                    onChange={(e) => setCertAgencyName(e.target.value)}
+                    placeholder="Agency Legal Name"
+                    className="h-8 text-xs mt-0.5"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-600">Issue Date</label>
+                    <Input
+                      type="date"
+                      value={certIssueDate}
+                      onChange={(e) => setCertIssueDate(e.target.value)}
+                      className="h-8 text-xs mt-0.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-600">Valid Until</label>
+                    <Input
+                      type="date"
+                      value={certValidUntil}
+                      onChange={(e) => setCertValidUntil(e.target.value)}
+                      className="h-8 text-xs mt-0.5"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={generatingCert}
+                  onClick={handleAutoGenerateCert}
+                  className="h-8 text-xs font-semibold border-[#042C53] text-[#042C53] hover:bg-[#E6F1FB]"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  {generatingCert ? 'Generating...' : 'Auto-Generate Official E-Certificate'}
+                </Button>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2">
-              <Input className="w-full min-w-0" ref={inputs.cert} type="file" accept={ACCEPT} onChange={pick(setCertFile)} />
+              <label className="text-[11px] font-medium text-[#6B7280]">Or upload a custom E-Certificate file:</label>
+              <Input className="w-full min-w-0 bg-white" ref={inputs.cert} type="file" accept={ACCEPT} onChange={pick(setCertFile)} />
               <PickedFile file={certFile} onClear={clear(setCertFile, 'cert')} />
               <Button onClick={issueCert} disabled={!certFile || busy === 'cert'} className="bg-[#27500A] hover:bg-[#1f3b08] text-white">
-                {busy === 'cert' ? 'Issuing...' : replacing === 'cert' ? 'Replace E-Certificate' : 'Issue E-Certificate'}
+                {busy === 'cert' ? 'Issuing...' : replacing === 'cert' ? 'Replace E-Certificate' : 'Issue E-Certificate & Activate Agent'}
               </Button>
               {replacing === 'cert' && <Button variant="ghost" onClick={cancelReplace}>Cancel</Button>}
             </div>
-            <p className="text-[11px] text-[#6B7280]">A certificate number is generated for the file you upload.</p>
+            <p className="text-[11px] text-[#6B7280]">A unique certificate number is generated automatically and the agent account is unlocked immediately.</p>
           </div>
         )}
 
