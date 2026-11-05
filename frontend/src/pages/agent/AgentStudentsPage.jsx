@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search, Plus, Download, GraduationCap, Mail, Phone,
-  ChevronRight, FileText, CheckCircle2, AlertCircle,
+  ChevronLeft, ChevronRight, FileText, CheckCircle2, AlertCircle,
   X, MessageSquare, LayoutGrid, List, Filter,
   ArrowRight, User, MapPin, Upload, ArrowUpRight,
   Eye,
@@ -85,6 +85,29 @@ const AgentStudentsPage = () => {
     return getStudentsByAgent(user?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [students, user?.id, getStudentsByAgent]);
+
+  const stepperRef = useRef(null);
+
+  // Auto-scroll the Journey Stepper to center on the active stage
+  useEffect(() => {
+    if (selectedStudentId) {
+      const student = myStudents.find(s => String(s.id || s._id) === String(selectedStudentId));
+      if (student) {
+        const scrollToActive = () => {
+          if (stepperRef.current) {
+            const currentIdx = getStudentJourneyIndex(student);
+            const stepWidth = 88;
+            const containerWidth = stepperRef.current.clientWidth || 340;
+            const targetScroll = Math.max(0, (currentIdx * stepWidth) - (containerWidth / 2) + (stepWidth / 2));
+            stepperRef.current.scrollLeft = targetScroll;
+          }
+        };
+        scrollToActive();
+        const timer = setTimeout(scrollToActive, 250);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [selectedStudentId, myStudents]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -477,85 +500,149 @@ const AgentStudentsPage = () => {
 
       {/* Main Content View */}
       {displayMode === 'table' ? (
-        <Card className="border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm text-left min-w-[760px]">
-              <thead>
-                <tr className="bg-[#F9FAFB] border-b border-gray-100">
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Course & University</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pipeline Stage</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Documents</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Registered</th>
-                  <th className="px-6 py-4 w-[60px]"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredStudents.length > 0 ? filteredStudents.map(s => {
-                  const docStatus = getDocStatus(s);
-                  return (
-                    <tr
-                      key={s.id || s._id}
-                      className="hover:bg-gray-50/50 cursor-pointer transition-colors"
-                      onClick={() => setSelectedStudentId(s.id || s._id)}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
-                            {getInitials(getStudentName(s))}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-[#111827] truncate">{getStudentName(s)}</div>
-                            <div className="text-[11px] text-gray-500 truncate">{s.email || s.customFields?.email || 'No email provided'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-[#111827] truncate">
-                            {s.applications?.[0]?.courseName || s.courseInterested || 'General Course'}
-                          </div>
-                          <div className="text-[11px] text-gray-500 truncate mt-0.5" title={getUniversityName(s)}>
-                            {getUniversityName(s)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap ${getStudentStageInfo(s).style}`}>
-                          {getStudentStageInfo(s).label}
+        <div className="space-y-4">
+          {/* Mobile Card List (< md) - Native App Style */}
+          <div className="md:hidden space-y-2.5">
+            {filteredStudents.length > 0 ? filteredStudents.map(s => {
+              const docStatus = getDocStatus(s);
+              const stageInfo = getStudentStageInfo(s);
+              return (
+                <div
+                  key={s.id || s._id}
+                  onClick={() => setSelectedStudentId(s.id || s._id)}
+                  className="bg-white border border-gray-200/90 rounded-2xl p-4 shadow-xs active:bg-slate-50 transition-all flex flex-col gap-3 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                        {getInitials(getStudentName(s))}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-[#111827] text-sm truncate leading-snug">
+                          {getStudentName(s)}
+                        </h4>
+                        <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                          {s.email || s.customFields?.email || 'No email provided'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${stageInfo.style}`}>
+                      {stageInfo.label}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600 gap-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-slate-800 truncate block text-xs">
+                        {s.applications?.[0]?.courseName || s.courseInterested || 'General Course'}
+                      </span>
+                      <span className="text-[11px] text-gray-400 truncate block">
+                        {getUniversityName(s)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {docStatus === 'missing' && (
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-[#FCEBEB] text-[#791F1F]">
+                          Doc Missing
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getVerificationBadge(s.verificationStatus || 'Pending')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {docStatus === 'complete' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#EAF3DE] text-[#27500A]">Complete</span>}
-                        {docStatus === 'missing' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
-                        {docStatus === 'pending' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FAEEDA] text-[#633806]">Pending</span>}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-medium text-gray-500 whitespace-nowrap">
-                        {new Date(s.createdAt || s.submittedAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#042C53] hover:border-[#042C53] transition-all">
-                          <ChevronRight size={16} />
-                        </div>
+                      )}
+                      <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400">
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="py-14 text-center text-gray-400 bg-white border border-gray-200 rounded-2xl p-6">
+                <User size={36} className="mx-auto mb-2 opacity-20" />
+                <p className="text-xs font-semibold text-gray-700">No students match your current filters</p>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table (md+) */}
+          <Card className="hidden md:block border-gray-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm text-left min-w-[760px]">
+                <thead>
+                  <tr className="bg-[#F9FAFB] border-b border-gray-100">
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Student</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Course &amp; University</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Pipeline Stage</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Verification</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Documents</th>
+                    <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Registered</th>
+                    <th className="px-6 py-4 w-[60px]"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredStudents.length > 0 ? filteredStudents.map(s => {
+                    const docStatus = getDocStatus(s);
+                    return (
+                      <tr
+                        key={s.id || s._id}
+                        className="hover:bg-gray-50/50 cursor-pointer transition-colors"
+                        onClick={() => setSelectedStudentId(s.id || s._id)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-[#E6F1FB] text-[#0C447C] flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
+                              {getInitials(getStudentName(s))}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-[#111827] truncate">{getStudentName(s)}</div>
+                              <div className="text-[11px] text-gray-500 truncate">{s.email || s.customFields?.email || 'No email provided'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-[#111827] truncate">
+                              {s.applications?.[0]?.courseName || s.courseInterested || 'General Course'}
+                            </div>
+                            <div className="text-[11px] text-gray-500 truncate mt-0.5" title={getUniversityName(s)}>
+                              {getUniversityName(s)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap ${getStudentStageInfo(s).style}`}>
+                            {getStudentStageInfo(s).label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getVerificationBadge(s.verificationStatus || 'Pending')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {docStatus === 'complete' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#EAF3DE] text-[#27500A]">Complete</span>}
+                          {docStatus === 'missing' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FCEBEB] text-[#791F1F]">Missing</span>}
+                          {docStatus === 'pending' && <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase bg-[#FAEEDA] text-[#633806]">Pending</span>}
+                        </td>
+                        <td className="px-6 py-4 text-xs font-medium text-gray-500 whitespace-nowrap">
+                          {new Date(s.createdAt || s.submittedAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:text-[#042C53] hover:border-[#042C53] transition-all">
+                            <ChevronRight size={16} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-20 text-center text-gray-400 italic">
+                        <User size={48} className="mx-auto mb-3 opacity-20" />
+                        No students match your current filters.
                       </td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-20 text-center text-gray-400 italic">
-                      <User size={48} className="mx-auto mb-3 opacity-20" />
-                      No students match your current filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredStudents.length > 0 ? filteredStudents.map(s => {
@@ -704,53 +791,60 @@ const AgentStudentsPage = () => {
 
             <div className="p-6 md:p-8 space-y-10">
               {/* Associated Application & Visa Tracking */}
-              <div>
+              <div className="mb-6 p-4 rounded-xl border border-gray-200 bg-[#F9FAFB]">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
                     <Briefcase size={12} className="text-[#042C53]" />
                     Associated Application & Visa Tracking
                   </h4>
-                  <Badge variant="outline" className="text-[10px] font-bold">
+                  <span className="text-[10px] font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-full">
                     {selectedStudent.applications?.length || 0} {selectedStudent.applications?.length === 1 ? 'Application' : 'Applications'}
-                  </Badge>
+                  </span>
                 </div>
 
                 {selectedStudent.applications && selectedStudent.applications.length > 0 ? (
                   <div className="space-y-3">
                     {selectedStudent.applications.map(app => (
-                      <div key={app.id || app._id} className="p-4 rounded-xl border border-gray-200 bg-white hover:border-[#042C53] transition-all shadow-sm">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div>
-                            <span className="text-[11px] font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-md font-mono">
-                              {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
-                            </span>
-                            <h5 className="font-bold text-[#111827] text-sm mt-1">{app.courseName || selectedStudent.courseInterested || 'Course'}</h5>
-                            <p className="text-xs text-gray-500 font-medium">{app.university?.name || getUniversityName(selectedStudent)}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
-                              {app.pipelineStage || app.status || 'Submitted'}
-                            </span>
-                          </div>
+                      <div key={app.id || app._id} className="p-3.5 bg-white rounded-xl border border-gray-200 hover:border-[#042C53]/40 shadow-xs transition-all space-y-2.5">
+                        {/* Top row: Application ID & Status Badge */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-mono font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-md whitespace-nowrap">
+                            {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 whitespace-nowrap">
+                            {app.pipelineStage || app.status || 'Submitted'}
+                          </span>
                         </div>
 
-                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between mt-3">
+                        {/* Middle: Course & University */}
+                        <div className="space-y-0.5">
+                          <h5 className="font-bold text-[#111827] text-sm leading-snug">
+                            {app.courseName || selectedStudent.courseInterested || 'Course'}
+                          </h5>
+                          <p className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+                            <GraduationCap size={13} className="text-gray-400 shrink-0" />
+                            <span className="truncate">{app.university?.name || getUniversityName(selectedStudent)}</span>
+                          </p>
+                        </div>
+
+                        {/* Bottom: Date & View Action */}
+                        <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                           <span className="text-[10px] text-gray-400 font-medium">
-                            Applied: {new Date(app.createdAt || selectedStudent.createdAt).toLocaleDateString()}
+                            Applied: {new Date(app.createdAt || selectedStudent.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                           <Button
                             size="sm"
-                            className="h-8 px-3 text-xs bg-[#042C53] hover:bg-[#0C447C] text-white font-semibold gap-1"
+                            className="h-7 px-2.5 text-xs bg-[#042C53] hover:bg-[#0C447C] text-white font-semibold gap-1 shadow-xs"
                             onClick={() => navigate(`/agent/applications/${app.id || app._id}`)}
                           >
-                            View Application <ArrowUpRight size={13} />
+                            View Application <ArrowUpRight size={12} />
                           </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 rounded-xl border border-dashed border-gray-200 bg-[#F9FAFB] text-center">
+                  <div className="p-4 rounded-xl border border-dashed border-gray-200 bg-white text-center">
                     <p className="text-xs text-gray-500 font-medium mb-3">No course application on record for this student.</p>
                     <Button
                       size="sm"
@@ -764,10 +858,60 @@ const AgentStudentsPage = () => {
               </div>
 
               {/* Journey Tracker */}
-              <div>
-                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 sm:mb-6">Student Journey Progress</h4>
-                <div className="overflow-x-auto scrollbar-hide py-1">
-                  <div className="flex items-start z-10 min-w-[380px]">
+              <div className="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-[#F9FAFB]/70 space-y-3.5 mb-6">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-['Outfit']">
+                      Student Journey Progress
+                    </h4>
+                    <p className="text-sm font-bold text-[#111827] mt-0.5 font-['Outfit']">
+                      {getStageLabel(STUDENT_JOURNEY[getStudentJourneyIndex(selectedStudent)] || 'Application')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-[#042C53] font-mono">
+                        Step {getStudentJourneyIndex(selectedStudent) + 1} of {STUDENT_JOURNEY.length}
+                      </span>
+                      <span className="text-[10px] text-gray-500 block font-medium">
+                        {Math.round(((getStudentJourneyIndex(selectedStudent) + 1) / STUDENT_JOURNEY.length) * 100)}% Completed
+                      </span>
+                    </div>
+                    {/* Left / Right scroll arrow controls */}
+                    <div className="flex items-center gap-1 pl-1">
+                      <button
+                        type="button"
+                        onClick={() => stepperRef.current?.scrollBy({ left: -140, behavior: 'smooth' })}
+                        className="w-6 h-6 rounded-md bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center justify-center transition-colors"
+                        title="Previous milestones"
+                      >
+                        <ChevronLeft size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => stepperRef.current?.scrollBy({ left: 140, behavior: 'smooth' })}
+                        className="w-6 h-6 rounded-md bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center justify-center transition-colors"
+                        title="Next milestones"
+                      >
+                        <ChevronRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Linear Progress Bar */}
+                <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#0C447C] to-[#27500A] transition-all duration-500 rounded-full"
+                    style={{
+                      width: `${Math.min(100, Math.round(((getStudentJourneyIndex(selectedStudent) + 1) / STUDENT_JOURNEY.length) * 100))}%`
+                    }}
+                  />
+                </div>
+
+                {/* Horizontal Scrollable Stepper */}
+                <div ref={stepperRef} className="overflow-x-auto scroll-row py-2 -mx-1 px-1">
+                  <div className="flex items-start z-10" style={{ minWidth: 'max-content' }}>
                     {STUDENT_JOURNEY.map((stage, idx) => {
                       const currentIdx = getStudentJourneyIndex(selectedStudent);
                       const isLast = idx === STUDENT_JOURNEY.length - 1;
@@ -775,20 +919,34 @@ const AgentStudentsPage = () => {
                       const isDone = idx < currentIdx || (isLast && idx === currentIdx);
                       const isActive = idx === currentIdx && !isLast;
                       return (
-                        <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
+                        <div key={stage} className="w-20 sm:w-24 shrink-0 relative flex flex-col items-center">
                           {idx > 0 && (
-                            <div className={`absolute top-[18px] -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-100'}`} />
+                            <div
+                              className={`absolute top-[14px] -translate-y-1/2 right-1/2 w-full h-0.5 ${
+                                idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-200'
+                              }`}
+                            />
                           )}
-                          <div className={`relative z-1 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' :
-                            isActive ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/50 shadow-sm' :
-                              'bg-white border-gray-100 text-gray-300'
-                            }`}>
-                            {isDone ? <CheckCircle2 size={16} /> : idx + 1}
+                          <div
+                            className={`relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all shrink-0 ${
+                              isDone
+                                ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]'
+                                : isActive
+                                ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/60 shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-400'
+                            }`}
+                          >
+                            {isDone ? <CheckCircle2 size={15} /> : idx + 1}
                           </div>
-                          <span className={`text-[10px] leading-tight mt-3 px-0.5 font-bold text-center break-words ${isDone ? 'text-[#27500A]' :
-                            isActive ? 'text-[#0C447C]' :
-                              'text-gray-300'
-                            }`}>
+                          <span
+                            className={`text-[10px] leading-snug mt-2 px-1 font-semibold text-center max-w-[80px] break-words ${
+                              isDone
+                                ? 'text-[#27500A]'
+                                : isActive
+                                ? 'text-[#0C447C] font-bold'
+                                : 'text-gray-400'
+                            }`}
+                          >
                             {getStageLabel(stage)}
                           </span>
                         </div>
@@ -799,9 +957,9 @@ const AgentStudentsPage = () => {
               </div>
 
               {/* Student Details Grid */}
-              <div>
-                <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.2em] mb-6">Metadata & Context</h4>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+              <div className="mb-6">
+                <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.2em] mb-4">Metadata & Context</h4>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                   {[
                     { label: 'Target University', value: getUniversityName(selectedStudent) },
                     { label: 'Preferred Country', value: getStudentValue(selectedStudent, 'country', 'Country of Interest') },
@@ -810,7 +968,7 @@ const AgentStudentsPage = () => {
                     { label: 'Registered City', value: getStudentValue(selectedStudent, 'city', 'City') },
                     { label: 'Onboarding Date', value: new Date(selectedStudent.createdAt || selectedStudent.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) }
                   ].map((item, i) => (
-                    <div key={i} className="space-y-1">
+                    <div key={i} className="space-y-0.5">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{item.label}</p>
                       <p className="text-[13px] font-semibold text-[#111827]">{item.value}</p>
                     </div>
@@ -819,8 +977,8 @@ const AgentStudentsPage = () => {
               </div>
 
               {/* Documents Section */}
-              <div>
-                <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Documents</h4>
                   <Badge variant="outline" className="text-[9px] font-bold border-gray-200">{requiredDocs.length + 1} TOTAL</Badge>
                 </div>
@@ -833,36 +991,63 @@ const AgentStudentsPage = () => {
                     const isApproved = docStatus === 'approved';
                     const isRejected = docStatus === 'rejected';
                     const isUnderReview = docStatus === 'underreview' || docStatus === 'under_review';
+                    const hasAdminRequest = (selectedStudent.documentRequests || []).some(r => (r.category || '').toLowerCase() === (docType.value || '').toLowerCase());
 
                     return (
-                      <div key={docType.value} className="flex flex-col p-4 border border-gray-100 rounded-2xl bg-[#F9FAFB] hover:bg-white hover:border-[#042C53]/20 hover:shadow-sm transition-all group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-[#042C53] transition-colors">
-                            <FileText size={20} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-[13px] font-bold text-[#111827]">{docType.label}</p>
-                              {isMandatory && <span className="text-[8px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">Mandatory</span>}
+                      <div key={docType.value} className="flex flex-col p-3.5 border border-gray-200/80 rounded-2xl bg-[#F9FAFB]/60 hover:bg-white hover:border-[#042C53]/20 hover:shadow-xs transition-all space-y-3 group">
+                        {/* Row 1: Icon, Doc Label & Info, Status Badge */}
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-400 group-hover:text-[#042C53] transition-colors shrink-0 mt-0.5">
+                              <FileText size={18} />
                             </div>
-                            <p className="text-[10px] text-gray-500 font-medium mt-0.5">
-                              {doc ? `Uploaded on ${new Date(doc.uploadedAt).toLocaleDateString()}` : 'No file uploaded yet'}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-[13px] font-bold text-[#111827]">{docType.label}</p>
+                                {isMandatory ? (
+                                  <span className="text-[8px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Mandatory</span>
+                                ) : (
+                                  <span className="text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Optional</span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                                {doc ? `Uploaded on ${new Date(doc.uploadedAt).toLocaleDateString()}` : 'No file uploaded yet'}
+                              </p>
+                            </div>
                           </div>
-                          {doc ? (
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isApproved ? 'bg-[#EAF3DE] text-[#27500A]' :
+
+                          {/* Status Badge */}
+                          <div className="shrink-0 flex flex-col items-end gap-1">
+                            {doc ? (
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                isApproved ? 'bg-[#EAF3DE] text-[#27500A]' :
                                 isCorrection ? 'bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]' :
-                                  isRejected ? 'bg-[#FCEBEB] text-[#791F1F]' :
-                                    isUnderReview ? 'bg-[#E6F1FB] text-[#0C447C]' :
-                                      'bg-gray-100 text-gray-700'
-                                }`}>
+                                isRejected ? 'bg-[#FCEBEB] text-[#791F1F]' :
+                                isUnderReview ? 'bg-[#E6F1FB] text-[#0C447C]' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
                                 {DOC_STATUS_LABELS[doc.status] || doc.status || 'Submitted'}
                               </span>
+                            ) : hasAdminRequest ? (
+                              <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200">
+                                Requested by admin
+                              </span>
+                            ) : (
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isMandatory ? 'bg-[#FCEBEB] text-[#791F1F]' : 'bg-gray-100 text-gray-400'}`}>
+                                {isMandatory ? 'Missing' : 'Not uploaded'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Row 2: Action Buttons */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                          {doc ? (
+                            <>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 text-[10px] font-bold text-[#042C53] px-2"
+                                className="h-7 text-[11px] font-bold text-[#042C53] hover:bg-[#E6F1FB] px-3"
                                 onClick={() => viewStudentDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id)}
                               >
                                 View
@@ -871,41 +1056,32 @@ const AgentStudentsPage = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 text-[10px] font-bold border-amber-600 text-amber-800 bg-amber-50 hover:bg-amber-100"
+                                  className="h-7 text-[11px] font-bold border-amber-600 text-amber-800 bg-amber-50 hover:bg-amber-100 px-3"
                                   onClick={() => handleUploadClick(docType.value)}
                                   disabled={isUploading}
                                 >
-                                  <Upload size={12} className="mr-1" /> Replace
+                                  <Upload size={12} className="mr-1.5" /> Replace
                                 </Button>
                               )}
-                            </div>
+                            </>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              {(selectedStudent.documentRequests || []).some(r => (r.category || '').toLowerCase() === (docType.value || '').toLowerCase()) && (
-                                <span className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200">
-                                  Requested by admin
-                                </span>
-                              )}
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isMandatory ? 'bg-[#FCEBEB] text-[#791F1F]' : 'bg-gray-100 text-gray-400'}`}>
-                                {isMandatory ? 'Missing' : 'Optional'}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-[10px] font-bold border-[#042C53] text-[#042C53] hover:bg-[#042C53] hover:text-white"
-                                onClick={() => handleUploadClick(docType.value)}
-                                disabled={isUploading}
-                              >
-                                <Upload size={12} className="mr-1" /> Upload
-                              </Button>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[11px] font-bold border-[#042C53] text-[#042C53] hover:bg-[#042C53] hover:text-white px-3"
+                              onClick={() => handleUploadClick(docType.value)}
+                              disabled={isUploading}
+                            >
+                              <Upload size={12} className="mr-1.5" /> Upload
+                            </Button>
                           )}
                         </div>
 
                         {/* Reviewer remarks / reason callout for Agent */}
                         {doc?.remarks && (isCorrection || isRejected) && (
-                          <div className={`mt-3 p-2.5 rounded-xl text-xs border ${isCorrection ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-red-50/80 border-red-200 text-red-900'
-                            }`}>
+                          <div className={`mt-2 p-2.5 rounded-xl text-xs border ${
+                            isCorrection ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-red-50/80 border-red-200 text-red-900'
+                          }`}>
                             <span className="font-bold text-[10px] uppercase block mb-0.5">
                               {isCorrection ? 'More Information Requested By Admin:' : 'Rejection Reason:'}
                             </span>

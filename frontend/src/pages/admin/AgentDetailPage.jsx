@@ -246,74 +246,106 @@ const AgentDetailPage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen font-['Inter']">
-      <button
-        onClick={() => navigate('/admin/agents')}
-        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#042C53] hover:underline mb-4"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Agents
-      </button>
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F9FAFB] min-h-screen font-['Inter'] pb-28 lg:pb-8">
+      {/* Top Bar: Navigation & Mobile Action */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <button
+          onClick={() => navigate('/admin/agents')}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#042C53] hover:text-[#0C447C] bg-white border border-gray-200/80 px-3 py-1.5 rounded-xl shadow-2xs active:bg-gray-50 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Agents
+        </button>
 
-      {/* ── Top Header: Agent Identity ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-        <div className="flex items-start gap-4">
-          <AgencyLogo agent={agent} size="lg" />
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold text-[#111827] font-['Outfit'] tracking-tight">{agent.name}</h1>
-            {agent.agentCode && (
-              <span className="text-xs font-mono font-semibold text-[#0C447C] bg-[#E6F1FB] px-2 py-0.5 rounded border border-[#0C447C]/20">
-                {agent.agentCode}
-              </span>
-            )}
-            <Badge className={cn('border-none text-[10px] font-medium h-5', agent.status === 'active' ? 'bg-[#EAF3DE] text-[#27500A]' : 'bg-[#F3F4F6] text-[#4B5563]')}>
-              {agent.status === 'active' ? 'Active' : 'Inactive'}
-            </Badge>
-            <Badge className="border-none text-[10px] font-medium h-5 bg-[#EEEDFE] text-[#3C3489]">
-              Access: {getAccessLabel(agent)}
-            </Badge>
-          </div>
-          <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2">
-            <span>{agent.agencyName || 'Independent agent'}</span>
-            {agent.country && (
-              <>
-                <span>·</span>
-                <span className="flex items-center gap-1 font-medium text-slate-700">
-                  <Globe className="w-3.5 h-3.5 text-slate-400" /> {agent.country}
-                </span>
-              </>
-            )}
-            {agent.accountManager && (
-              <>
-                <span>·</span>
-                <span className="text-xs bg-purple-50 text-purple-700 font-medium px-2 py-0.5 rounded">
-                  AM: {agent.accountManager.name}
-                </span>
-              </>
-            )}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-2 text-xs text-[#111827]">
-            <span className="flex items-center gap-1.5 break-all"><Mail className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" /> {agent.email}</span>
-            <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" /> {agent.phone || 'No phone'}</span>
-          </div>
-        </div>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/admin/agents/${agent.id}/report`)}
+          className="h-8 px-3 text-xs font-semibold border-slate-200 bg-white shadow-2xs sm:hidden flex items-center gap-1"
+        >
+          <BarChart3 className="w-3.5 h-3.5" /> Report
+        </Button>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/admin/agents/${agent.id}/report`)}
-            className="h-9 px-3.5 text-xs font-semibold border-slate-200 bg-white"
-          >
-            <BarChart3 className="w-4 h-4 mr-1.5" /> Performance Report
-          </Button>
+      {/* Top Header: Agent Identity */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 sm:p-5 shadow-2xs mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+            <AgencyLogo agent={agent} size="lg" className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#111827] font-['Outfit'] tracking-tight truncate">
+                  {agent.name}
+                </h1>
+                {agent.agentCode && (
+                  <span className="text-[11px] font-mono font-bold text-[#0C447C] bg-[#E6F1FB] px-2 py-0.5 rounded-md border border-[#0C447C]/20 shrink-0">
+                    {agent.agentCode}
+                  </span>
+                )}
+                <Badge className={cn('border-none text-[10px] font-semibold h-5 shrink-0', agent.status === 'active' ? 'bg-[#EAF3DE] text-[#27500A]' : 'bg-[#F3F4F6] text-[#4B5563]')}>
+                  {agent.status === 'active' ? 'Active' : 'Inactive'}
+                </Badge>
+                <Badge className="border-none text-[10px] font-medium h-5 bg-[#EEEDFE] text-[#3C3489] shrink-0">
+                  Access: {getAccessLabel(agent)}
+                </Badge>
+              </div>
+
+              <p className="text-xs sm:text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="font-medium text-slate-800">{agent.agencyName || 'Independent agent'}</span>
+                {agent.country && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <span className="flex items-center gap-1 font-medium text-slate-700">
+                      <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {agent.country}
+                    </span>
+                  </>
+                )}
+                {agent.accountManager && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <span className="text-[11px] bg-purple-50 text-purple-700 font-medium px-2 py-0.2 rounded shrink-0">
+                      AM: {agent.accountManager.name}
+                    </span>
+                  </>
+                )}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-xs text-[#111827]">
+                <a
+                  href={`mailto:${agent.email}`}
+                  className="flex items-center gap-1.5 text-slate-600 hover:text-[#0C447C] transition-colors truncate max-w-[280px]"
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
+                  <span className="truncate">{agent.email}</span>
+                </a>
+                {agent.phone && (
+                  <a
+                    href={`tel:${agent.phone}`}
+                    className="flex items-center gap-1.5 text-slate-600 hover:text-[#0C447C] transition-colors"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
+                    <span>{agent.phone}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/admin/agents/${agent.id}/report`)}
+              className="h-9 px-3.5 text-xs font-semibold border-slate-200 bg-white shadow-2xs hover:bg-slate-50"
+            >
+              <BarChart3 className="w-4 h-4 mr-1.5" /> Performance Report
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* ── Status & Onboarding Banner (if pending review) ── */}
       {(!isVerified || inReview) && (
-        <Card className="border-[#E5E7EB] shadow-none bg-white mb-5 p-4 space-y-3" data-testid="onboarding-review-card">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <Card className="border-[#E5E7EB] shadow-none bg-white mb-5 p-4 space-y-3 rounded-2xl" data-testid="onboarding-review-card">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Badge className={cn('border-none text-xs font-medium h-6', status.style)}>
                 {isVerified ? 'Verified' : status.label}
@@ -323,7 +355,7 @@ const AgentDetailPage = () => {
             <ReviewActionButtons agent={agent} onOpenDialog={setReviewAction} />
           </div>
           {['rejected', 'correction_required'].includes(agent.onboardingStatus) && agent.verificationRemarks && (
-            <div className={cn('text-sm border p-3 rounded-lg', agent.onboardingStatus === 'rejected' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-orange-50 border-orange-100 text-orange-900')}>
+            <div className={cn('text-xs sm:text-sm border p-3 rounded-xl', agent.onboardingStatus === 'rejected' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-orange-50 border-orange-100 text-orange-900')}>
               <span className="font-semibold">{agent.onboardingStatus === 'rejected' ? 'Reason for rejection: ' : 'Changes requested: '}</span>
               {agent.verificationRemarks}
             </div>
@@ -331,8 +363,8 @@ const AgentDetailPage = () => {
         </Card>
       )}
 
-      {/* ── Navigation Tabs: Students Inside Agents (Vijay requirement) ── */}
-      <div className="scroll-row items-center gap-1 border-b border-[#D1D5DB] mb-6" role="tablist">
+      {/* ── Navigation Tabs: Touch-Friendly Scroll Row ── */}
+      <div className="overflow-x-auto scrollbar-hide flex items-center gap-1 border-b border-[#D1D5DB] mb-6 -mx-1 px-1" role="tablist">
         {[
           { key: 'students', label: 'Students', Icon: GraduationCap, count: agentStudents.length },
           { key: 'invoices', label: 'Invoices', Icon: FileText, count: agentInvoices.length },
@@ -347,17 +379,17 @@ const AgentDetailPage = () => {
               aria-selected={selected}
               onClick={() => setTab(key)}
               className={cn(
-                "flex items-center gap-2 py-3 px-4 -mb-px text-[13px] font-semibold border-b-2 transition-colors whitespace-nowrap",
+                "flex items-center gap-2 py-2.5 px-3.5 sm:py-3 sm:px-4 -mb-px text-xs sm:text-[13px] font-semibold border-b-2 transition-all whitespace-nowrap shrink-0",
                 selected
-                  ? "border-[#0C447C] text-[#0C447C] bg-[#E6F1FB] rounded-t-lg"
-                  : "border-transparent text-[#374151] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-t-lg"
+                  ? "border-[#0C447C] text-[#0C447C] bg-[#E6F1FB] rounded-t-xl"
+                  : "border-transparent text-[#374151] hover:text-[#111827] hover:bg-[#F3F4F6] rounded-t-xl"
               )}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4 shrink-0" />
               <span>{label}</span>
               {count !== null && (
                 <span className={cn(
-                  "px-1.5 py-0.5 text-[11px] font-mono rounded-full font-semibold",
+                  "px-1.5 py-0.2 text-[10px] sm:text-[11px] font-mono rounded-full font-semibold",
                   selected ? "bg-[#0C447C] text-white" : "bg-[#E5E7EB] text-[#374151]"
                 )}>
                   {count}{suffix}
@@ -437,205 +469,358 @@ const AgentDetailPage = () => {
             </div>
           </div>
 
-          {/* Students Table */}
-          <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[700px]">
-                <TableHeader>
-                  <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Student Name</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">University & Course</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Visa Stage</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Fees Paid</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Applied Date</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3 text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {displayedStudents.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-slate-400">
-                        <GraduationCap className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm font-semibold text-slate-700">No students found</p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {agentStudents.length === 0
-                            ? 'This agent has not registered any students yet.'
-                            : 'No students match your search criteria.'}
-                        </p>
-                      </TableCell>
+          {/* Students: Desktop Table & Mobile Cards */}
+          <div className="hidden md:block">
+            <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden rounded-2xl">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Student Name</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">University & Course</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Visa Stage</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Fees Paid</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Applied Date</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3 text-right">Action</TableHead>
                     </TableRow>
-                  ) : (
-                    displayedStudents.map((st) => {
-                      const stageInfo = getStudentStageInfo(st);
-                      const sName = getStudentName(st);
-                      return (
-                        <TableRow key={st.id || st._id} className="hover:bg-slate-50/80 transition-colors">
-                          <TableCell className="py-3">
-                            <div className="font-semibold text-xs text-slate-900">{sName}</div>
-                            <div className="text-[11px] text-slate-400 truncate max-w-xs">{st.email || 'No email provided'}</div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="font-medium text-xs text-slate-800">{st.university || st.universityName || '—'}</div>
-                            <div className="text-[11px] text-slate-500">{st.course || st.courseInterested || '—'}</div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <Badge className={cn('border-none text-[10px] h-5 font-semibold', stageInfo.style)}>
-                              {stageInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            {hasFeesPaid(st) ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857]">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Paid
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-slate-400">Pending</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-3 text-xs text-slate-600">
-                            {formatDate(st.createdAt || st.submittedAt)}
-                          </TableCell>
-                          <TableCell className="py-3 text-right">
-                            <Link
-                              to={`/admin/students/${st.id || st._id}`}
-                              className="inline-flex items-center gap-1 text-xs font-semibold text-[#0C447C] hover:underline"
-                            >
-                              View <ArrowUpRight className="w-3.5 h-3.5" />
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedStudents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                          <GraduationCap className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm font-semibold text-slate-700">No students found</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {agentStudents.length === 0
+                              ? 'This agent has not registered any students yet.'
+                              : 'No students match your search criteria.'}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      displayedStudents.map((st) => {
+                        const stageInfo = getStudentStageInfo(st);
+                        const sName = getStudentName(st);
+                        return (
+                          <TableRow key={st.id || st._id} className="hover:bg-slate-50/80 transition-colors">
+                            <TableCell className="py-3">
+                              <div className="font-semibold text-xs text-slate-900">{sName}</div>
+                              <div className="text-[11px] text-slate-400 truncate max-w-xs">{st.email || 'No email provided'}</div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="font-medium text-xs text-slate-800">{st.university || st.universityName || '—'}</div>
+                              <div className="text-[11px] text-slate-500">{st.course || st.courseInterested || '—'}</div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Badge className={cn('border-none text-[10px] h-5 font-semibold', stageInfo.style)}>
+                                {stageInfo.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {hasFeesPaid(st) ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857]">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Paid
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-slate-400">Pending</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3 text-xs text-slate-600">
+                              {formatDate(st.createdAt || st.submittedAt)}
+                            </TableCell>
+                            <TableCell className="py-3 text-right">
+                              <Link
+                                to={`/admin/students/${st.id || st._id}`}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#0C447C] hover:underline"
+                              >
+                                View <ArrowUpRight className="w-3.5 h-3.5" />
+                              </Link>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </div>
+
+          {/* Mobile Student Cards (App View) */}
+          <div className="block md:hidden space-y-3">
+            {displayedStudents.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 text-center text-slate-400">
+                <GraduationCap className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-700">No students found</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {agentStudents.length === 0
+                    ? 'This agent has not registered any students yet.'
+                    : 'No students match your search criteria.'}
+                </p>
+              </div>
+            ) : (
+              displayedStudents.map((st) => {
+                const stageInfo = getStudentStageInfo(st);
+                const sName = getStudentName(st);
+                return (
+                  <div
+                    key={st.id || st._id}
+                    className="bg-white border border-gray-200/90 rounded-2xl p-4 shadow-2xs active:bg-slate-50 transition-all flex flex-col gap-2.5"
+                  >
+                    {/* Top: Name & Stage Badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-sm text-slate-900 truncate font-['Outfit']">{sName}</h4>
+                        {st.email && (
+                          <p className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                            <Mail className="w-3 h-3 shrink-0 text-slate-400" /> {st.email}
+                          </p>
+                        )}
+                      </div>
+                      <Badge className={cn('border-none text-[10px] h-5 font-semibold shrink-0', stageInfo.style)}>
+                        {stageInfo.label}
+                      </Badge>
+                    </div>
+
+                    {/* University & Course Info */}
+                    <div className="bg-[#F9FAFB] rounded-xl p-2.5 border border-gray-100 flex items-start gap-2 text-xs">
+                      <GraduationCap className="w-4 h-4 text-[#042C53] shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-800 truncate">{st.university || st.universityName || 'University unassigned'}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{st.course || st.courseInterested || 'Course not selected'}</p>
+                      </div>
+                    </div>
+
+                    {/* Bottom: Tuition status, Date & Action */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px]">
+                      <div className="flex items-center gap-2">
+                        {hasFeesPaid(st) ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[#047857]">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Tuition Paid
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-medium">Tuition Pending</span>
+                        )}
+                        <span className="text-gray-300">·</span>
+                        <span className="text-slate-500">{formatDate(st.createdAt || st.submittedAt)}</span>
+                      </div>
+                      <Link
+                        to={`/admin/students/${st.id || st._id}`}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-[#0C447C] hover:underline"
+                      >
+                        View <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
       {/* ── TAB 2: INVOICES ── */}
       {activeTab === 'invoices' && (
         <div className="space-y-4">
-          {/* Milestone Pipeline Flow Notice (Vijay requirement) */}
-          <div className="bg-[#E6F1FB]/60 border border-[#B5D4F4] rounded-xl p-4">
-            <h4 className="text-xs font-bold text-[#0C447C] uppercase tracking-wider mb-2">
+          {/* Milestone Pipeline Flow Notice */}
+          <div className="bg-[#E6F1FB]/60 border border-[#B5D4F4] rounded-2xl p-4">
+            <h4 className="text-[10px] font-bold text-[#0C447C] uppercase tracking-wider mb-2.5">
               Invoice Progression Pipeline
             </h4>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#0C447C]">
-              <span className="px-2.5 py-1 rounded bg-white font-semibold shadow-sm border border-slate-200">
-                1. Invoice Submitted
-              </span>
-              <span>➔</span>
-              <span className="px-2.5 py-1 rounded bg-white font-semibold shadow-sm border border-slate-200">
-                2. University Payment In
-              </span>
-              <span>➔</span>
-              <span className="px-2.5 py-1 rounded bg-[#EAF3DE] text-[#27500A] font-semibold shadow-sm border border-emerald-200">
-                3. Payment Released to Agent (Slip Uploaded)
-              </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200/80 font-semibold shadow-2xs">
+                <span className="w-5 h-5 rounded-full bg-[#0C447C] text-white flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
+                <span className="truncate">Invoice Submitted</span>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200/80 font-semibold shadow-2xs">
+                <span className="w-5 h-5 rounded-full bg-[#0C447C] text-white flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
+                <span className="truncate">University Payment In</span>
+              </div>
+              <div className="flex items-center gap-2 p-2.5 bg-[#EAF3DE] text-[#27500A] rounded-xl border border-emerald-200/80 font-semibold shadow-2xs">
+                <span className="w-5 h-5 rounded-full bg-[#27500A] text-white flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
+                <span className="truncate">Payment Released</span>
+              </div>
             </div>
           </div>
 
           {/* Invoice Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl p-4 border border-[#E5E7EB] shadow-sm">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Invoiced</p>
+            <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-2xs">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Invoiced</p>
               <p className="text-2xl font-bold text-slate-900 mt-1 font-['Outfit']">{formatCurrency(invoiceMetrics.total)}</p>
               <p className="text-[11px] text-slate-500 mt-0.5">{invoiceMetrics.count} invoices submitted</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-[#E5E7EB] shadow-sm">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Released to Agent</p>
+            <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-2xs">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Released to Agent</p>
               <p className="text-2xl font-bold text-[#047857] mt-1 font-['Outfit']">{formatCurrency(invoiceMetrics.paid)}</p>
               <p className="text-[11px] text-slate-500 mt-0.5">Settled commission payout</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-[#E5E7EB] shadow-sm">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending / Due</p>
+            <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB] shadow-2xs">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending / Due</p>
               <p className="text-2xl font-bold text-[#92400E] mt-1 font-['Outfit']">{formatCurrency(invoiceMetrics.pending)}</p>
               <p className="text-[11px] text-slate-500 mt-0.5">Awaiting university payment</p>
             </div>
           </div>
 
-          {/* Invoices Table */}
-          <Card className="border-[#E5E7EB] shadow-sm bg-white overflow-hidden">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[700px]">
-                <TableHeader>
-                  <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Invoice #</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Amount</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Submitted Date</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">University Payment</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Payout Status</TableHead>
-                    <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3 text-right">Payment Slip</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agentInvoices.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-slate-400">
-                        <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm font-semibold text-slate-700">No invoices submitted</p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          Agent can submit invoices once student visas reach 100% and tuition fees are verified.
-                        </p>
-                      </TableCell>
+          {/* Desktop Invoices Table */}
+          <div className="hidden md:block">
+            <Card className="border-[#E5E7EB] shadow-2xs bg-white overflow-hidden rounded-2xl">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[700px]">
+                  <TableHeader>
+                    <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Invoice #</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Amount</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Submitted Date</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">University Payment</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3">Payout Status</TableHead>
+                      <TableHead className="text-[11px] font-bold text-slate-500 uppercase py-3 text-right">Payment Slip</TableHead>
                     </TableRow>
-                  ) : (
-                    agentInvoices.map((inv) => {
-                      const isPaid = (inv.status || '').toLowerCase() === 'paid';
-                      return (
-                        <TableRow key={inv.id || inv._id} className="hover:bg-slate-50/80 transition-colors">
-                          <TableCell className="py-3 font-semibold text-xs text-slate-900 font-mono">
-                            {inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`}
-                          </TableCell>
-                          <TableCell className="py-3 text-xs font-bold text-slate-900">
-                            {formatCurrency(inv.amount)}
-                          </TableCell>
-                          <TableCell className="py-3 text-xs text-slate-600">
-                            {formatDate(inv.submissionDate || inv.createdAt)}
-                          </TableCell>
-                          <TableCell className="py-3">
-                            {inv.universityPaid || inv.universityPaymentReceivedAt ? (
-                              <Badge className="bg-emerald-50 text-emerald-700 border-none text-[10px] font-semibold">
-                                Received {inv.universityPaymentReceivedAt ? formatDate(inv.universityPaymentReceivedAt) : ''}
+                  </TableHeader>
+                  <TableBody>
+                    {agentInvoices.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                          <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm font-semibold text-slate-700">No invoices submitted</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Agent can submit invoices once student visas reach 100% and tuition fees are verified.
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      agentInvoices.map((inv) => {
+                        const isPaid = (inv.status || '').toLowerCase() === 'paid';
+                        return (
+                          <TableRow key={inv.id || inv._id} className="hover:bg-slate-50/80 transition-colors">
+                            <TableCell className="py-3 font-semibold text-xs text-slate-900 font-mono">
+                              {inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`}
+                            </TableCell>
+                            <TableCell className="py-3 text-xs font-bold text-slate-900">
+                              {formatCurrency(inv.amount)}
+                            </TableCell>
+                            <TableCell className="py-3 text-xs text-slate-600">
+                              {formatDate(inv.submissionDate || inv.createdAt)}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              {inv.universityPaid || inv.universityPaymentReceivedAt ? (
+                                <Badge className="bg-emerald-50 text-emerald-700 border-none text-[10px] font-semibold">
+                                  Received {inv.universityPaymentReceivedAt ? formatDate(inv.universityPaymentReceivedAt) : ''}
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-amber-50 text-amber-700 border-none text-[10px] font-semibold">
+                                  Awaiting University
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Badge className={cn(
+                                "border-none text-[10px] font-semibold capitalize",
+                                isPaid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                              )}>
+                                {inv.status || 'Submitted'}
                               </Badge>
-                            ) : (
-                              <Badge className="bg-amber-50 text-amber-700 border-none text-[10px] font-semibold">
-                                Awaiting University
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <Badge className={cn(
-                              "border-none text-[10px] font-semibold capitalize",
-                              isPaid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                            )}>
-                              {inv.status || 'Submitted'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="py-3 text-right">
-                            {inv.paymentSlipUrl || inv.receiptUrl ? (
-                              <a
-                                href={inv.paymentSlipUrl || inv.receiptUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#047857] hover:underline"
-                              >
-                                View Slip <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            ) : (
-                              <span className="text-[11px] text-slate-400">—</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+                            </TableCell>
+                            <TableCell className="py-3 text-right">
+                              {inv.paymentSlipUrl || inv.receiptUrl ? (
+                                <a
+                                  href={inv.paymentSlipUrl || inv.receiptUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#047857] hover:underline"
+                                >
+                                  View Slip <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-slate-400">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </div>
+
+          {/* Mobile Invoices Cards (App View) */}
+          <div className="block md:hidden space-y-3">
+            {agentInvoices.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 text-center text-slate-400">
+                <FileText className="w-10 h-10 mx-auto mb-2 opacity-30 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-700">No invoices submitted</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Agent can submit invoices once student visas reach 100% and tuition fees are verified.
+                </p>
+              </div>
+            ) : (
+              agentInvoices.map((inv) => {
+                const isPaid = (inv.status || '').toLowerCase() === 'paid';
+                return (
+                  <div
+                    key={inv.id || inv._id}
+                    className="bg-white border border-gray-200/90 rounded-2xl p-4 shadow-2xs active:bg-slate-50 transition-all flex flex-col gap-2.5"
+                  >
+                    {/* Top: Invoice # & Payout Status */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-bold text-xs text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-md">
+                        {inv.invoiceNumber || `INV-${inv.id?.slice(0, 8)}`}
+                      </span>
+                      <Badge className={cn(
+                        "border-none text-[10px] font-semibold capitalize",
+                        isPaid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                      )}>
+                        {inv.status || 'Submitted'}
+                      </Badge>
+                    </div>
+
+                    {/* Amount & Date */}
+                    <div className="flex items-baseline justify-between pt-1">
+                      <div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Invoice Amount</p>
+                        <p className="text-xl font-bold text-slate-900 font-['Outfit'] mt-0.5">{formatCurrency(inv.amount)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Submitted</p>
+                        <p className="text-xs text-slate-600 font-medium mt-0.5">{formatDate(inv.submissionDate || inv.createdAt)}</p>
+                      </div>
+                    </div>
+
+                    {/* University Payment info & Slip */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+                      <div>
+                        {inv.universityPaid || inv.universityPaymentReceivedAt ? (
+                          <Badge className="bg-emerald-50 text-emerald-700 border-none text-[10px] font-semibold">
+                            Univ Paid {inv.universityPaymentReceivedAt ? formatDate(inv.universityPaymentReceivedAt) : ''}
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-50 text-amber-700 border-none text-[10px] font-semibold">
+                            Awaiting University
+                          </Badge>
+                        )}
+                      </div>
+                      <div>
+                        {inv.paymentSlipUrl || inv.receiptUrl ? (
+                          <a
+                            href={inv.paymentSlipUrl || inv.receiptUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-bold text-[#047857] hover:underline"
+                          >
+                            View Slip <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">No slip uploaded</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
@@ -800,32 +985,32 @@ const AgentDetailPage = () => {
               ) : (
                 <div className="divide-y divide-[#F3F4F6]">
                   {docs.map((doc, i) => (
-                    <div key={doc.id || doc._id || i} className="px-4 py-3">
-                      <div className="flex items-center justify-between gap-3">
+                    <div key={doc.id || doc._id || i} className="p-3.5 sm:px-4 sm:py-3 space-y-2">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[13px] font-medium text-[#111827]">{doc.docType}</p>
+                          <p className="text-[13px] font-bold text-[#111827]">{doc.docType}</p>
                           <p className="text-[11px] text-[#6B7280] truncate">{doc.fileName}{doc.uploadedAt ? ` · ${formatDate(doc.uploadedAt)}` : ''}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <Badge className={cn('border-none text-[10px] font-medium h-5 capitalize', docBadge(doc.status))}>{doc.status}</Badge>
-                          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => viewAgentDocument(agent.id, doc.id || doc._id)}>
-                            <Eye className="w-3.5 h-3.5 mr-1.5" /> View
+                          <Button variant="outline" size="sm" className="h-7 text-xs font-semibold" onClick={() => viewAgentDocument(agent.id, doc.id || doc._id)}>
+                            <Eye className="w-3.5 h-3.5 mr-1" /> View
                           </Button>
                         </div>
                       </div>
                       {canReviewDocs && inReview && doc.status !== 'rejected' && (
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2 pt-1 border-t border-gray-100">
                           {doc.status === 'pending' && (
-                            <Button variant="outline" size="sm" className="flex-1 h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => reviewDocument(doc, 'approved')}>
+                            <Button variant="outline" size="sm" className="flex-1 h-7 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-semibold" onClick={() => reviewDocument(doc, 'approved')}>
                               <Check className="w-3.5 h-3.5 mr-1" /> Approve
                             </Button>
                           )}
-                          <Button variant="outline" size="sm" className="flex-1 h-7 text-xs border-red-200 text-red-600 hover:bg-red-50" onClick={() => reviewDocument(doc, 'rejected')}>
+                          <Button variant="outline" size="sm" className="flex-1 h-7 text-xs border-red-200 text-red-600 hover:bg-red-50 font-semibold" onClick={() => reviewDocument(doc, 'rejected')}>
                             <X className="w-3.5 h-3.5 mr-1" /> Reject
                           </Button>
                         </div>
                       )}
-                      {doc.remarks && <p className="text-[11px] text-[#6B7280] bg-[#F9FAFB] rounded p-2 mt-2"><strong>Remarks:</strong> {doc.remarks}</p>}
+                      {doc.remarks && <p className="text-[11px] text-[#6B7280] bg-[#F9FAFB] rounded-lg p-2 mt-1"><strong>Remarks:</strong> {doc.remarks}</p>}
                     </div>
                   ))}
                   {missing.map(({ type }) => (

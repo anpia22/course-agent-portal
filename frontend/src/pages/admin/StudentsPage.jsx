@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import {
   Search, Plus, Download, Flag, User, Mail, Phone,
-  ChevronRight, FileText, CheckCircle2, AlertCircle,
+  ChevronRight, ChevronLeft, FileText, CheckCircle2, AlertCircle,
   X, MessageSquare, Bell, ArrowUpRight,
   Pencil, LayoutGrid, List, Shield, Clock, XCircle,
   Check, Filter, RefreshCw, GraduationCap, Briefcase
@@ -85,6 +85,28 @@ const StudentsPage = () => {
   const [docFilter, setDocFilter] = useState('all');
   const [verificationFilter, setVerificationFilter] = useState('all');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const stepperRef = useRef(null);
+
+  // Auto-scroll the Journey Stepper to center on the student's active stage
+  useEffect(() => {
+    if (selectedStudentId) {
+      const student = (students || []).find(s => String(s.id || s._id) === String(selectedStudentId));
+      if (student) {
+        const scrollToActive = () => {
+          if (stepperRef.current) {
+            const currentIdx = getStudentJourneyIndex(student);
+            const stepWidth = 88;
+            const containerWidth = stepperRef.current.clientWidth || 340;
+            const targetScroll = Math.max(0, (currentIdx * stepWidth) - (containerWidth / 2) + (stepWidth / 2));
+            stepperRef.current.scrollLeft = targetScroll;
+          }
+        };
+        scrollToActive();
+        const timer = setTimeout(scrollToActive, 250);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [selectedStudentId, students]);
   const paramUni = searchParams.get('university') || '';
   const paramCourse = searchParams.get('course') || '';
   const paramAction = searchParams.get('action');
@@ -1228,60 +1250,146 @@ const StudentsPage = () => {
               </div>
 
               {selectedStudent.applications && selectedStudent.applications.length > 0 ? (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {selectedStudent.applications.map(app => (
-                    <div key={app.id || app._id} className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
-                      <div className="min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-[10px] font-mono font-bold text-[#042C53] bg-[#E6F1FB] px-1.5 py-0.2 rounded">
-                            {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
-                          </span>
-                          <span className="text-[10px] font-bold uppercase px-1.5 py-0.2 rounded bg-blue-50 text-blue-700">
-                            {app.pipelineStage || app.status || 'Submitted'}
-                          </span>
-                        </div>
-                        <div className="text-xs font-bold text-[#111827] truncate">
-                          {app.courseName || selectedStudent.courseInterested || 'Course'}
-                        </div>
-                        <div className="text-[11px] text-gray-500 truncate">
-                          {app.university?.name || getUniversityName(selectedStudent)}
-                        </div>
+                    <div key={app.id || app._id} className="p-3.5 bg-white rounded-xl border border-gray-200 hover:border-[#042C53]/40 shadow-xs transition-all space-y-2.5">
+                      {/* Top row: Application ID & Status Badge */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono font-bold text-[#042C53] bg-[#E6F1FB] px-2 py-0.5 rounded-md whitespace-nowrap">
+                          {app.applicationNumber || (app.id ? `#${app.id.slice(-6).toUpperCase()}` : 'APP')}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 whitespace-nowrap">
+                          {app.pipelineStage || app.status || 'Submitted'}
+                        </span>
                       </div>
-                      <button
-                        onClick={() => navigate(`/admin/applications/${app.id || app._id}`)}
-                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#042C53] text-white hover:bg-[#0C447C] transition-all shrink-0 flex items-center gap-1"
-                      >
-                        Details <ArrowUpRight size={12} />
-                      </button>
+
+                      {/* Middle: Course & University */}
+                      <div className="space-y-0.5">
+                        <h5 className="font-bold text-[#111827] text-sm leading-snug">
+                          {app.courseName || selectedStudent.courseInterested || 'Course'}
+                        </h5>
+                        <p className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+                          <GraduationCap size={13} className="text-gray-400 shrink-0" />
+                          <span className="truncate">{app.university?.name || getUniversityName(selectedStudent)}</span>
+                        </p>
+                      </div>
+
+                      {/* Bottom: Date & Details action button */}
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-[10px] text-gray-400 font-medium">
+                          Applied: {new Date(app.createdAt || selectedStudent.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        <button
+                          onClick={() => navigate(`/admin/applications/${app.id || app._id}`)}
+                          className="h-7 px-2.5 text-xs font-semibold rounded-lg bg-[#042C53] text-white hover:bg-[#0C447C] transition-all flex items-center gap-1 shadow-xs"
+                        >
+                          Details <ArrowUpRight size={12} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 italic">No applications linked yet.</p>
+                <div className="p-4 rounded-xl border border-dashed border-gray-200 bg-white text-center">
+                  <p className="text-xs text-gray-400 italic">No applications linked yet.</p>
+                </div>
               )}
             </div>
 
-            <div className="text-xs font-bold text-[#111827] uppercase tracking-widest mb-4 font-['Outfit']">Journey Progress</div>
-            <div className="overflow-x-auto scrollbar-hide mb-6 py-1">
-              <div className="flex items-start min-w-[380px]">
-                {STUDENT_JOURNEY.map((stage, idx) => {
-                  const currentIdx = getStudentJourneyIndex(selectedStudent);
-                  const isLast = idx === STUDENT_JOURNEY.length - 1;
-                  // The final stage has nothing after it, so reaching it counts as complete
-                  const isDone = idx < currentIdx || (isLast && idx === currentIdx);
-                  const isActive = idx === currentIdx && !isLast;
-                  return (
-                    <div key={stage} className="flex-1 min-w-0 relative flex flex-col items-center">
-                      {idx > 0 && (
-                        <div className={`absolute top-4 -translate-y-1/2 right-1/2 w-full h-0.5 ${idx <= currentIdx ? 'bg-[#97C459]' : 'bg-[#E5E7EB]'}`}></div>
-                      )}
-                      <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${isDone ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]' : isActive ? 'bg-[#E6F1FB] border-[#85B7EB] text-[#0C447C] ring-4 ring-[#042C53]/5' : 'bg-gray-50 border-[#E5E7EB] text-[#6B7280]'}`}>
-                        {isDone ? <CheckCircle2 size={14} /> : idx + 1}
+            {/* Journey Tracker */}
+            <div className="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-[#F9FAFB]/70 space-y-3.5 mb-6">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-['Outfit']">Journey Progress</div>
+                  <p className="text-sm font-bold text-[#111827] mt-0.5 font-['Outfit']">
+                    {getStageLabel(STUDENT_JOURNEY[getStudentJourneyIndex(selectedStudent)] || 'Application')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-[#042C53] font-mono">
+                      Step {getStudentJourneyIndex(selectedStudent) + 1} of {STUDENT_JOURNEY.length}
+                    </span>
+                    <span className="text-[10px] text-gray-500 block font-medium">
+                      {Math.round(((getStudentJourneyIndex(selectedStudent) + 1) / STUDENT_JOURNEY.length) * 100)}% Completed
+                    </span>
+                  </div>
+                  {/* Left / Right scroll arrow controls */}
+                  <div className="flex items-center gap-1 pl-1">
+                    <button
+                      type="button"
+                      onClick={() => stepperRef.current?.scrollBy({ left: -140, behavior: 'smooth' })}
+                      className="w-6 h-6 rounded-md bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center justify-center transition-colors"
+                      title="Previous milestones"
+                    >
+                      <ChevronLeft size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => stepperRef.current?.scrollBy({ left: 140, behavior: 'smooth' })}
+                      className="w-6 h-6 rounded-md bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 flex items-center justify-center transition-colors"
+                      title="Next milestones"
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Linear Progress Bar */}
+              <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#0C447C] to-[#27500A] transition-all duration-500 rounded-full"
+                  style={{
+                    width: `${Math.min(100, Math.round(((getStudentJourneyIndex(selectedStudent) + 1) / STUDENT_JOURNEY.length) * 100))}%`
+                  }}
+                />
+              </div>
+
+              {/* Horizontal Scrollable Stepper */}
+              <div ref={stepperRef} className="overflow-x-auto scroll-row py-2 -mx-1 px-1">
+                <div className="flex items-start z-10" style={{ minWidth: 'max-content' }}>
+                  {STUDENT_JOURNEY.map((stage, idx) => {
+                    const currentIdx = getStudentJourneyIndex(selectedStudent);
+                    const isLast = idx === STUDENT_JOURNEY.length - 1;
+                    // The final stage has nothing after it, so reaching it counts as complete
+                    const isDone = idx < currentIdx || (isLast && idx === currentIdx);
+                    const isActive = idx === currentIdx && !isLast;
+                    return (
+                      <div key={stage} className="w-20 sm:w-24 shrink-0 relative flex flex-col items-center">
+                        {idx > 0 && (
+                          <div
+                            className={`absolute top-[14px] -translate-y-1/2 right-1/2 w-full h-0.5 ${
+                              idx <= currentIdx ? 'bg-[#97C459]' : 'bg-gray-200'
+                            }`}
+                          />
+                        )}
+                        <div
+                          className={`relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all shrink-0 ${
+                            isDone
+                              ? 'bg-[#EAF3DE] border-[#C0DD97] text-[#27500A]'
+                              : isActive
+                              ? 'bg-[#E6F1FB] border-[#0C447C] text-[#0C447C] ring-4 ring-[#E6F1FB]/60 shadow-xs'
+                              : 'bg-white border-gray-200 text-gray-400'
+                          }`}
+                        >
+                          {isDone ? <CheckCircle2 size={14} /> : idx + 1}
+                        </div>
+                        <span
+                          className={`text-[9px] sm:text-[10px] leading-tight mt-1.5 px-0.5 font-semibold text-center max-w-[74px] sm:max-w-[84px] break-words ${
+                            isDone
+                              ? 'text-[#27500A]'
+                              : isActive
+                              ? 'text-[#0C447C] font-bold'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {getStageLabel(stage)}
+                        </span>
                       </div>
-                      <div className={`text-[10px] leading-tight mt-2 px-0.5 font-semibold text-center break-words ${isDone ? 'text-[#27500A]' : isActive ? 'text-[#0C447C] font-bold' : 'text-[#6B7280]'}`}>{getStageLabel(stage)}</div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -1301,28 +1409,32 @@ const StudentsPage = () => {
               ))}
             </div>
 
-            <div className="text-xs font-bold text-[#111827] uppercase tracking-widest mb-4 font-['Outfit']">Documents</div>
+            <div className="text-xs font-bold text-[#111827] uppercase tracking-widest mb-3 font-['Outfit']">Documents</div>
             <div className="flex flex-col gap-2.5 mb-6">
               {requiredDocs.map(docType => {
                 const doc = selectedStudent.documents?.find(d => d.category === docType.value);
                 const isMandatory = docType.mandatory !== false;
                 return (
-                  <div key={docType.value} className="flex items-center gap-3 p-3 border border-[#F3F4F6] rounded-xl bg-white shadow-sm">
-                    <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-[#6B7280]">
-                      <FileText size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <div className="text-[13px] font-bold text-[#111827]">{docType.label}</div>
-                        {isMandatory && <span className="text-[8px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">Mandatory</span>}
+                  <div key={docType.value} className="p-3 border border-[#F3F4F6] rounded-xl bg-white shadow-xs space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-[#6B7280] shrink-0 mt-0.5">
+                          <FileText size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-[#111827] truncate">{docType.label}</span>
+                            {isMandatory && <span className="text-[8px] bg-red-50 text-red-500 px-1.5 py-0.2 rounded font-bold uppercase">Mandatory</span>}
+                          </div>
+                          <p className="text-[10px] text-[#6B7280] mt-0.5">
+                            {doc ? `Uploaded ${new Date(doc.uploadedAt).toLocaleDateString()}` : 'Not uploaded'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-[10px] text-[#6B7280] mt-0.5">
-                        {doc ? `Uploaded ${new Date(doc.uploadedAt).toLocaleDateString()}` : 'Not uploaded'}
-                      </div>
-                    </div>
-                    {doc ? (
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+
+                      {/* Status Badge */}
+                      {doc ? (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase shrink-0 ${
                           (doc.status || '').toLowerCase() === 'approved' ? 'bg-[#EAF3DE] text-[#27500A]' :
                           (doc.status || '').toLowerCase().includes('correction') ? 'bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A]' :
                           (doc.status || '').toLowerCase() === 'rejected' ? 'bg-[#FCEBEB] text-[#791F1F]' :
@@ -1331,53 +1443,61 @@ const StudentsPage = () => {
                         }`}>
                           {DOC_STATUS_LABELS[doc.status] || doc.status || 'Submitted'}
                         </span>
-                        {(doc.status || '').toLowerCase() !== 'approved' && (
-                          <div className="flex gap-1">
-                            <button
-                              className="px-2 py-1 text-[9px] font-bold rounded-lg border border-[#D1D5DB] hover:bg-gray-50"
-                              onClick={() => viewStudentDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id)}
-                            >
-                              View
-                            </button>
-                            <button
-                              className="px-2 py-1 text-[9px] font-bold rounded-lg bg-[#EAF3DE] text-[#27500A] border border-[#C0DD97] hover:bg-[#DCEFC0]"
-                              onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'Approved')}
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="px-2 py-1 text-[9px] font-bold rounded-lg bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] hover:bg-[#FEF3C7]"
-                              onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'CorrectionRequired')}
-                            >
-                              More Info
-                            </button>
-                            <button
-                              className="px-2 py-1 text-[9px] font-bold rounded-lg bg-[#FCEBEB] text-[#791F1F] border border-[#F7C1C1] hover:bg-[#FADADA]"
-                              onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'Rejected')}
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                        {(doc.status || '').toLowerCase() === 'approved' && (
-                          <button
-                            className="px-2.5 py-1 text-[10px] font-bold rounded-lg border border-[#D1D5DB] hover:bg-gray-50 transition-all"
-                            onClick={() => viewStudentDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id)}
-                          >
-                            View
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${isMandatory ? 'bg-[#FCEBEB] text-[#791F1F]' : 'bg-gray-100 text-gray-400'}`}>
+                      ) : (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase shrink-0 ${isMandatory ? 'bg-[#FCEBEB] text-[#791F1F]' : 'bg-gray-100 text-gray-400'}`}>
                           {isMandatory ? 'Missing' : 'Optional'}
                         </span>
+                      )}
+                    </div>
+
+                    {/* Actions Row */}
+                    {doc && (doc.status || '').toLowerCase() !== 'approved' && (
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 flex-wrap">
                         <button
-                          className="inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded-lg border border-[#D1D5DB] hover:bg-gray-50 transition-all"
+                          className="px-2.5 py-1 text-[10px] font-semibold rounded-lg border border-[#D1D5DB] hover:bg-gray-50 transition-colors"
+                          onClick={() => viewStudentDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id)}
+                        >
+                          View
+                        </button>
+                        <button
+                          className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[#EAF3DE] text-[#27500A] border border-[#C0DD97] hover:bg-[#DCEFC0] transition-colors"
+                          onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'Approved')}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[#FFFBEB] text-[#92400E] border border-[#FDE68A] hover:bg-[#FEF3C7] transition-colors"
+                          onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'CorrectionRequired')}
+                        >
+                          More Info
+                        </button>
+                        <button
+                          className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-[#FCEBEB] text-[#791F1F] border border-[#F7C1C1] hover:bg-[#FADADA] transition-colors"
+                          onClick={() => handleVerifyDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id, 'Rejected')}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
+                    {doc && (doc.status || '').toLowerCase() === 'approved' && (
+                      <div className="pt-2 border-t border-gray-100 flex justify-end">
+                        <button
+                          className="px-3 py-1 text-[10px] font-semibold rounded-lg border border-[#D1D5DB] hover:bg-gray-50 transition-colors text-slate-700"
+                          onClick={() => viewStudentDocument(selectedStudent.id || selectedStudent._id, doc.id || doc._id)}
+                        >
+                          View Document
+                        </button>
+                      </div>
+                    )}
+
+                    {!doc && (
+                      <div className="pt-2 border-t border-gray-100 flex justify-end">
+                        <button
+                          className="inline-flex items-center gap-1 px-3 py-1 text-[10px] font-semibold rounded-lg border border-[#D1D5DB] hover:bg-gray-50 transition-colors text-slate-700"
                           onClick={() => requestStudentDocument(selectedStudent.id || selectedStudent._id, docType.value, docType.label)}
                         >
-                          Request <ArrowUpRight className="w-3.5 h-3.5 ml-1.5" />
+                          Request Document <ArrowUpRight className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}

@@ -142,3 +142,31 @@ html {
         grid-column: 1 / -1;
     }
 }
+
+
+/* ── Native App & PWA Polish ── */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button, a, input, select, textarea, [role="button"] {
+    touch-action: manipulation;
+}
+
+body {
+    overscroll-behavior-y: contain;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Standalone PWA adjustments (when installed on iOS/Android home screen) */
+@media (display-mode: standalone) {
+    body {
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    input, textarea {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+}

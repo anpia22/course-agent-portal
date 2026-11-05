@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import GlobalSearch from './GlobalSearch';
+import MobileBottomNav from './MobileBottomNav';
 import { cn } from '../../lib/utils';
 import PageSkeleton from '../common/PageSkeleton';
 
@@ -15,11 +15,10 @@ const DashboardLayout = ({ requiredRole }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Close mobile menu on route change
+  // Close mobile drawer on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
-
 
   if (authLoading) {
     return (
@@ -40,10 +39,10 @@ const DashboardLayout = ({ requiredRole }) => {
 
   return (
     <div className="min-h-screen bg-background" data-testid="dashboard-layout">
-      {/* Mobile Overlay */}
+      {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -56,9 +55,9 @@ const DashboardLayout = ({ requiredRole }) => {
         />
       </div>
 
-      {/* Sidebar - Mobile */}
+      {/* Sidebar - Mobile Drawer */}
       <div className={cn(
-        'fixed inset-y-0 left-0 z-50 w-64 max-w-[85vw] lg:hidden transition-transform duration-300',
+        'fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] lg:hidden transition-transform duration-300 shadow-2xl',
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full invisible'
       )}>
         <Sidebar
@@ -67,7 +66,7 @@ const DashboardLayout = ({ requiredRole }) => {
         />
       </div>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className={cn(
         'flex flex-col min-h-screen transition-all duration-300',
         sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
@@ -76,12 +75,10 @@ const DashboardLayout = ({ requiredRole }) => {
           sidebarCollapsed={sidebarCollapsed}
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
-        <main className="flex-1 min-w-0 overflow-x-hidden">
+
+        {/* Content Container (pb-20 on mobile ensures space above the bottom tab bar) */}
+        <main className="flex-1 min-w-0 overflow-x-hidden pb-20 lg:pb-8">
           <div className="max-w-[1400px] mx-auto w-full min-w-0">
-            {/* Topbar search is hidden below md, so offer it here on phones */}
-            <div className="md:hidden px-4 pt-3">
-              <div className="[&_input]:h-10"><GlobalSearch /></div>
-            </div>
             {dataLoading && !initialized ? (
               <PageSkeleton />
             ) : (
@@ -92,6 +89,9 @@ const DashboardLayout = ({ requiredRole }) => {
           </div>
         </main>
       </div>
+
+      {/* ── Native Mobile Bottom Navigation Bar (Thumb Zone) ── */}
+      <MobileBottomNav />
     </div>
   );
 };

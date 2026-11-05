@@ -801,7 +801,8 @@ const AgentsPage = () => {
                     const rateColor = rateValue >= 18 ? 'text-[#27500A]' : rateValue >= 12 ? 'text-[#633806]' : 'text-[#791F1F]';
 
                     return (
-                      <TableRow key={agent.id} className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors">
+                      <TableRow key={agent.id} className="group border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors"
+                      >
                         <TableCell className="py-3 pl-6">
                           <div className="flex items-center gap-3">
                             <AgencyLogo agent={agent} size="sm" />
@@ -856,7 +857,7 @@ const AgentsPage = () => {
                         <TableCell className="py-3 text-center text-[13px] text-[#111827]">{agent.confirmed}</TableCell>
                         <TableCell className={cn("py-3 text-center text-[13px] font-medium", rateColor)}>{agent.convRate}</TableCell>
                         <TableCell className="py-3 pr-6 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity">
                             <button
                               className="h-8 w-8 flex items-center justify-center rounded-md text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 transition-all"
                               onClick={() => handleView(agent)}

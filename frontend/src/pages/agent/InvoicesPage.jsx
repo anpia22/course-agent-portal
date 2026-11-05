@@ -204,8 +204,68 @@ const InvoicesPage = () => {
   ];
 
   const InvoiceList = ({ list }) => (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
-      <Table className="min-w-[650px]">
+    <div className="space-y-4">
+      {/* Mobile Card List (< md) - Native App Style */}
+      <div className="md:hidden space-y-3">
+        {list.length === 0 ? (
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-8 text-center text-[#6B7280]">
+            <FileText className="w-10 h-10 opacity-20 mx-auto mb-2" />
+            <p className="text-sm font-medium">{invoices.length === 0 ? 'You have not raised any invoice yet.' : 'No invoices match this view.'}</p>
+            {invoices.length === 0 && <p className="text-xs text-gray-400 mt-1">Use "Raise New Invoice" to claim your commission.</p>}
+          </div>
+        ) : (
+          list.map((invoice) => {
+            const studentNames = getStudentNames(invoice);
+            const stage = getStage(invoice);
+            const hasAmount = invoice.amount > 0;
+            return (
+              <div
+                key={invoice.id}
+                onClick={() => handleOpenView(invoice)}
+                className="bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-xs active:bg-slate-50 transition-all flex flex-col gap-3 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-xs font-bold text-[#111827] block">{invoice.invoiceNumber}</span>
+                    <span className="text-[11px] text-[#6B7280]">Raised {formatFinancialDate(invoice.raisedAt)}</span>
+                  </div>
+                  <span className={`inline-block text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${stage.tone}`}>
+                    {stage.label}
+                  </span>
+                </div>
+
+                <div className="text-xs text-[#374151]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">Students</span>
+                  <span className="font-medium text-slate-800 line-clamp-1">
+                    {studentNames.length > 0 ? studentNames.join(', ') : 'Commission claim'}
+                  </span>
+                </div>
+
+                <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Commission</span>
+                    <span className="font-bold text-sm text-[#042C53] tabular-nums">
+                      {hasAmount ? formatCurrency(invoice.amount, invoice.currency) : 'Pending calculation'}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={stage.key === 'action' ? 'default' : 'outline'}
+                    className={stage.key === 'action' ? 'h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-lg' : 'h-8 text-xs rounded-lg'}
+                    onClick={(e) => { e.stopPropagation(); handleOpenView(invoice); }}
+                  >
+                    {stage.key === 'action' ? 'Reply to Finance' : 'View Details'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block bg-white border border-[#E5E7EB] rounded-xl overflow-x-auto shadow-sm">
+        <Table className="min-w-[650px]">
         <TableHeader>
           <TableRow className="bg-[#F9FAFB] border-b border-[#E5E7EB] hover:bg-[#F9FAFB]">
             <TableHead className="text-xs text-[#374151] font-semibold px-5 py-3">Invoice</TableHead>
@@ -275,6 +335,7 @@ const InvoicesPage = () => {
           )}
         </TableBody>
       </Table>
+    </div>
     </div>
   );
 
